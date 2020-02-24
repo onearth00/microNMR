@@ -1,0 +1,30 @@
+RELEASE NOTE
+
+
+version FLI 1.0.4
+August 30, 2006 YQS
+
+* use p-code to compile FLIEstimate.m and FLIminfun.m
+for crossplatform compatibility.
+* add testFLI1d.m and testFLI2d.m and plotting functions.
+
+
+version FLI 1.0.3p
+April 29, 2004
+
+changes since FLI 1.0.2p
+* compiled version of FLIEstimate.m is included for
+Window PC, Mac OS X, sun solaris.
+
+
+version FLI 1.0.2p
+
+Oct 15, 2003
+
+Changes since FLI 1.0.1
+* Add functions FLI1d and FLI2d for 1d and 2D fast laplace inversion.
+* Add a new method for determination of alpha, the t1heel method by Apo Sezginer,
+  published in  JMRA 113,139-150 (1995).
+
+* WARNING. No extensive test of FLI2d had been performed. Please email me with 
+  your problems.
