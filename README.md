@@ -12,3 +12,7 @@ The sensor performs the following experiments:
 - nutation experiments,
 - CPMG,
 - IRCPMG.
+
+It is the codebase that used to generate data in the following paper:
+
+https://www.nature.com/articles/s41598-019-47634-2
