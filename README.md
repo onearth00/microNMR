@@ -10,6 +10,7 @@ The sensor performs the following experiments:
 - FID,
 - LF search,
 - nutation experiments,
+- spin echo, shape recording,
 - CPMG (window-sum optional),
 - IRCPMG.
 
