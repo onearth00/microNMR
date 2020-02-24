@@ -1,0 +1,18 @@
+1: firmware vesion read
+2: test modbus command read
+3: write SPI DAC
+4: SPI PLL HMC832
+5: reset PLL
+6: Slow channel ADC
+7: SPI read board temp
+8: SPI read 24bit temp sensor
+29: PLL read single
+30 - 47: 24 bit temp sensor
+50: dw			DM
+51: power level		DM
+52: RD			DM
+101: do nmr exp
+102: asic gain		YS
+103: read status	YS
+104: read data		YS
+ 

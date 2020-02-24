@@ -1,0 +1,10 @@
+FILE QUARANTINED
+
+Microsoft Forefront Protection for Exchange Server removed a file since it was found to match a filter.
+File name: "winmail.dat->UNMR Achive 08042016.zip->F28335.cmd"
+Filter name: "FILE FILTER= Banned attachment names: *.cmd"
+Server name: "NL0230MBX17N2" - Transport Scan
+
+The attachment is banned by Schlumberger IT Security policy.
+
+Please see http://www.hub.slb.com/display/index.do?id=id2586591 for further information.
