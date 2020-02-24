@@ -10,7 +10,7 @@ The sensor performs the following experiments:
 - FID,
 - LF search,
 - nutation experiments,
-- CPMG,
+- CPMG (window-sum optional),
 - IRCPMG.
 
 It is the codebase that used to generate data in the following paper:
