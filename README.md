@@ -1,8 +1,8 @@
 # microNMR
 
-This is a repo for microNMR project. a miniaturized NMR sensor assembly that is capable of performing high-quality relaxation measurements. 
+This is a repo for microNMR project, a miniaturized NMR sensor assembly that can perform high-quality relaxation measurements under extreme conditions. 
 
-Currently, it includes both firmware (in C) and software (in Matlab) that work for rev aa board.
+Currently, it includes both firmware (in C) and software (in Matlab) that work for Rev aa board.
 
 The sensor performs the following experiments:
 
