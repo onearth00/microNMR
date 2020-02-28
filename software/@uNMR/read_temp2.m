@@ -13,8 +13,8 @@ disp 'onboard temp sensor'
     outstring = obj.read_register(reg_temp,1,7);
 
 %    res = 0.03125*double(outstring)'
-    x= dec2hex(single(outstring),2)'
-    x=x(:)'
+    x= dec2hex(single(outstring),2)';
+    x=x(:)';
     res = hex2dec(x)*0.03125  ; 
     
 end

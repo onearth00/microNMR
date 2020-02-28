@@ -95,6 +95,14 @@ void InitMcbspa16bit(void);														// init Mcbspb 16 bit
 Uint32 spi_PLL_read(Uint8 reg);													// Single read of the PLL
 Uint16 spi_temp_board();														// Single read of Temperature sensor
 
+void magnet_temp_init(void);                                                                                                                                                                                                   // Default Magnet temp configuration
+void magnet_temp_write(Uint8 reg, Uint8 data);                                                                                                                                                               // Write to configure magnet temp register
+Uint8 magnet_reg_read(Uint8 reg);
+Uint32 magnet_temp_read(Uint8 reg);                                                                                                                                                                               // Single write to the magnet temperature sensor
+void magnet_temp_reset();
+void magnet_temp_sync();
+void magnet_temp_sdatac();
+
 // Global variables
 int asic_gain 							= 0x09;									// default asic gain
 Uint16 j								= 0x00; 								// default value
@@ -133,17 +141,18 @@ extern Uint16 RamfuncsLoadStart;     											// RAM memory location start
 extern Uint16 RamfuncsLoadEnd;
 extern Uint16 RamfuncsRunStart;
 extern Uint16 RamfuncsLoadSize;
+
 //extern Uint32 dataBuf_real [2600];
 //extern Uint32 dataBuf_imag [2600];
 
 // NMR related variables
 typedef  struct
-{short index,	// experiment index
+{short index,	// experiment index, used in Do_NMR_experiments(nextExpt.index);
 	ndata,	// number of data points
-	nscan,	// number of scans
+	nscan,	// number of scans, not the same as NA in the pulse seq.
 	done ,		// if the experiment is done
 	ready2start ,	// experiment should start now
-	read_index ;	// used during serial transfer
+	read_index ;	// used during serial transfer.
 } NMRvar;
 
 NMRvar nextExpt;
@@ -155,7 +164,7 @@ NMRvar nextExpt;
 
 extern int16 	dataBuf_real[];
 extern int16	dataBuf_imag[];
-
+extern PlsSeq   gPulseSeq;
 
 /*
  * Performing NMR experiments
@@ -167,10 +176,10 @@ void NMR_job();
 void NMR_job()
 {
 	if ( (nextExpt.done == 0) && (nextExpt.ready2start == 1) )
-		if ((nextExpt.index<10) && (nextExpt.nscan>0))
+		if ((nextExpt.index<255) && (nextExpt.nscan>0))
 		{
 			// CPU timer setting
-			CpuTimer0Regs.PRD.all = 2999000000;	// This is the period to count down for timer0
+			CpuTimer0Regs.PRD.all = 4000000000;	// This is the period to count down for timer0
 			ReloadCpuTimer0() ;
 			StartCpuTimer0();													// Start timer 0
 
@@ -180,14 +189,14 @@ void NMR_job()
 			//when the experiment is done
 			nextExpt.done= 1;
 			nextExpt.ready2start = 0;
-			nextExpt.ndata = GetAcqTD();
-
+			// nextExpt.ndata = GetAcqTD();         // error fixed nov 2019,
+			nextExpt.ndata = GetNMRParameters(i_acquiredTD);
+			nextExpt.nscan = 0;
+			nextExpt.read_index = 0;
 		}
 }
 
-
 void main(void)
-
 {
 
    Uint16 i;
@@ -281,7 +290,7 @@ void main(void)
 	IER |= M_INT1;                              								// Enable CPU int1
 
    CpuTimer0Regs.PRD.all 				= 0xFFFFFFFF;							// Counter period set to 32bits
-   CpuTimer0Regs.TPR.all  				= 0;									// Set pre-scale counter to divide by 1 (SYSCLKOUT)
+   CpuTimer0Regs.TPR.all  				= 0x01;									// Set pre-scale counter to divide by 1 (SYSCLKOUT). Change it to 1 from 0 by Ray, 09/15/2017
    CpuTimer0Regs.TPRH.all  				= 0;
 
    // Initialize timer control register:
@@ -377,12 +386,14 @@ void main(void)
    AdcRegs.ADCTRL2.bit.SOC_SEQ1 		= 0x1;									// start ADC sequence
 
 // speed up the modbus. YS. FEb 2017
-   eMBInit( MB_RTU, MB_SLV_ID, 0, 57600, MB_PAR_EVEN );							// Modbus init
+//   eMBInit( MB_RTU, MB_SLV_ID, 0, 128000, MB_PAR_EVEN );							// Modbus init
+   eMBInit( MB_RTU, MB_SLV_ID, 0, 57600, MB_PAR_EVEN );
 
    EnableInterrupts();															// enables interrupts
 
    eMBEnable();
    PLL_init();																	// initial 100 MHz setting at start up
+   magnet_temp_init();                                                   //initialize ADS1248 temp sensor
 
    // set up NMR parameters
    initNMRParameters();
@@ -562,7 +573,32 @@ eMBErrorCode eMBRegHoldingCB( UCHAR * pucRegBuffer, USHORT usAddress, USHORT usN
 				eMBError = MB_EINVAL;
 			}
 			break;
-/*
+
+		case 8:
+		                     // ADS1248, read magnet temp
+		                     if ((usNRegs == 2) && (eMode == MB_REG_READ))
+
+		                     {
+		                           tempval3=magnet_temp_read(0);
+		                           tempVal = tempval3 >> 16;
+		                           *pucRegBuffer++ = ( unsigned char )( tempVal >> 8 );              //
+		                           *pucRegBuffer++ = ( unsigned char )( tempVal & 0xFF );            //
+
+		                           tempVal = tempval3 & 0xFFFF;
+		                           *pucRegBuffer++ = ( unsigned char )( tempVal >> 8 );
+		                           *pucRegBuffer++ = ( unsigned char )( tempVal & 0xFF );
+
+		                         eMBError = MB_ENOERR;
+		                     }
+
+		                     else
+		                     {
+		                           eMBError = MB_EINVAL;
+		                     }
+
+		                     break;
+
+			/*
 		case 8:
 			// SPI ADC Board Read "Not sure this code is valid now that Mcbsp is used 11/29"
 
@@ -676,12 +712,85 @@ eMBErrorCode eMBRegHoldingCB( UCHAR * pucRegBuffer, USHORT usAddress, USHORT usN
 
 			break;
 */
+            //ADS1248 Registers by David M 09/29/2017
+     case 30:
+     case 31:
+     case 32:
+     case 33:
+     case 34:
+     case 35:
+     case 36:
+     case 37:
+     case 38:
+     case 39:
+     case 40:
+     case 41:
+     case 42:
+     case 43:
+     case 44:
+
+
+            // Write Register magnet temp
+            if ((usNRegs == 1) && (eMode == MB_REG_WRITE))
+            {
+                  magnet_temp_write(usAddress-30, *(pucRegBuffer+1));
+
+                eMBError = MB_ENOERR;
+            }
+
+            else if ((usNRegs == 1) && (eMode == MB_REG_READ))
+
+            {
+                  tempval3 = magnet_reg_read(usAddress-30);                                        // tempval3 now contains addressed register data
+
+                   *pucRegBuffer++ = ( unsigned char )( tempval3 >> 8 );
+                  *pucRegBuffer++ = ( unsigned char )( tempval3 & 0xFF );
+
+                eMBError = MB_ENOERR;
+            }
+
+            else
+            {
+                  eMBError = MB_EINVAL;
+            }
+
+            break;
+
+     case 45:
+
+            if ((eMode == MB_REG_WRITE) && (usNRegs == 1))
+            {
+                  magnet_temp_reset();
+                  eMBError = MB_ENOERR;
+            }
+            break;
+
+     case 46:
+
+            if ((eMode == MB_REG_WRITE) && (usNRegs == 1))
+            {
+                  magnet_temp_sdatac();
+                  eMBError = MB_ENOERR;
+            }
+            break;
+
+     case 47:
+
+            if ((eMode == MB_REG_WRITE) && (usNRegs == 1))
+            {
+                  magnet_temp_sync();
+                  eMBError = MB_ENOERR;
+            }
+            break;
+
 	// YS. Jan 23, 2017
 
 			//YS dec 14, 2016
 		case 101:
 			// SPI ASIC, Do NMR experiments
 			// write 1 registers, 2 bytes
+		    // first byte : experiment code
+		    // second byte: number of scans
 			if ((usNRegs == 1) && (eMode == MB_REG_WRITE))
 			{
 				unsigned int x1= (unsigned int)(*pucRegBuffer);
@@ -763,7 +872,7 @@ eMBErrorCode eMBRegHoldingCB( UCHAR * pucRegBuffer, USHORT usAddress, USHORT usN
 
 							eMBError = MB_ENOERR;
 						}
-						else if ((usNRegs == 1) && (eMode == MB_REG_READ))
+						else if ((usNRegs == 1) && (eMode == MB_REG_READ))          // read the number of data acquired.
 						{
 							if (nextExpt.done== 1)
 							{
@@ -859,6 +968,89 @@ eMBErrorCode eMBRegHoldingCB( UCHAR * pucRegBuffer, USHORT usAddress, USHORT usN
 						}
 			break;
 
+
+            // Oct 31, 2017. YS
+            // add a function to download the entire pulse sequence
+            //
+        case 110:
+            // read/download NMR pulse seq, add YS Oct 31, 2017 --
+            // A complete pulse seq is 64 by 64 bits
+        {
+            Uint32 x1,x2;
+            UCHAR   c1,c2,c3,c4;
+            int k;
+            // usNRegs is 4 times number of pulses to download
+            // We will use a fixed usNRegs = 64, for 16 pulses.
+            // This will run 4 times to download the full seq.
+            if ((usNRegs == 64) && (eMode == MB_REG_WRITE))
+            {
+                for (k=0;k<usNRegs/4;k++) {
+                    c1= (*pucRegBuffer++);
+                    c2= (*pucRegBuffer++);
+                    c3= (*pucRegBuffer++);
+                    c4= (*pucRegBuffer++);
+                    x1 = ((Uint32)c1<<24) + ((Uint32)c2<<16)+((Uint32)c3<<8)+((Uint32)c4);
+
+                    c1= (*pucRegBuffer++);
+                    c2= (*pucRegBuffer++);
+                    c3= (*pucRegBuffer++);
+                    c4= (*pucRegBuffer++);
+                    x2 = ((Uint32)c1<<24) + ((Uint32)c2<<16)+((Uint32)c3<<8)+((Uint32)c4);
+
+                    k  = nextExpt.read_index;
+                    if ((k>=0) && (k<64)) {
+                        gPulseSeq.pls[k].dword[1] = x1;
+                        gPulseSeq.pls[k].dword[0] = x2;
+                    }
+
+                    nextExpt.read_index++;
+
+                }
+                eMBError = MB_ENOERR;
+            }
+            else if ((usNRegs >= 1) && (eMode == MB_REG_READ))  // read 1 or more pulse segment, usNReg is the number of
+                                                                // pulse segment. Each is 4 16-bits long
+            {
+
+
+                USHORT nPulses = usNRegs/4;
+                for ( i=0;i<nPulses; i++)
+                {
+                    // get pulse seq segment
+                    k  = nextExpt.read_index;
+                    if ((k<0) || (k>63))        // if the pulse number is not valid (within 0-63)
+                    {   x1=0;
+                        x2=0;
+                    }
+                    else {
+                        x1 = gPulseSeq.pls[k].dword[1];
+                        x2 = gPulseSeq.pls[k].dword[0];
+                    }
+                    // store to serial buffer, real first, then imag
+                    *pucRegBuffer++ = ( unsigned char )( (x1>>24) & 0x000000FF);            // modbus Tx of msb 16bits of  8bits at a time via *pucRegBuffer
+                    *pucRegBuffer++ = ( unsigned char )( (x1>>16) & 0x000000FF );   // modbus Tx of remaining lsb 16bits of  8bits at a time
+                    *pucRegBuffer++ = ( unsigned char )( (x1>>8)  & 0x000000FF );   // modbus Tx of remaining lsb 16bits of  8bits at a time
+                    *pucRegBuffer++ = ( unsigned char )( (x1)     & 0x000000FF );   // modbus Tx of remaining lsb 16bits of  8bits at a time
+
+                    *pucRegBuffer++ = ( unsigned char )( (x2>>24) & 0x000000FF);            // modbus Tx of msb 16bits of  8bits at a time via *pucRegBuffer
+                    *pucRegBuffer++ = ( unsigned char )( (x2>>16) & 0x000000FF );   // modbus Tx of remaining lsb 16bits of  8bits at a time
+                    *pucRegBuffer++ = ( unsigned char )( (x2>>8)  & 0x000000FF );   // modbus Tx of remaining lsb 16bits of  8bits at a time
+                    *pucRegBuffer++ = ( unsigned char )( (x2)     & 0x000000FF );   // modbus Tx of remaining lsb 16bits of  8bits at a time
+
+                    nextExpt.read_index += 1;
+                }
+                eMBError = MB_ENOERR;
+            }
+            else
+
+            {
+                eMBError = MB_EINVAL;
+            }
+
+        }
+            break;
+
+// Enf of the function to read/download the entire pulse sequence
 
 
 		case 1000 ... 2000:														// ASIC Do_NMR_experiments READ RX_R

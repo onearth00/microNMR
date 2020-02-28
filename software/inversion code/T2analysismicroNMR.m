@@ -1,4 +1,4 @@
-function [T2,y,tau2,T2fit] = T2analysismicroNMR(datain,TE,dummy,TD)
+function [T2,y,tau2] = T2analysismicroNMR(datain,TE,dummy,TD)
 % Analyze T2 data from microNMR using CPMG
 % Perform 1d analysis and save result in mat file.
 % 
@@ -46,14 +46,14 @@ initialtime = cputime;
 
 %T2 inversion - set up kernel and run FLI1d
 tau2= [1:length(data)]'* (TE*(dummy+1));
-T2 = logspace(-5,0,100);
+T2 = logspace(-2,0.5,100);
 K2 = exp(-tau2 * (1./T2));
 [U2, S2, V2] = svds(K2, 12);
 
 
 % run through a range of alpha
 %theAlphalist = [100 10 1 0.1 0.01 0.001];
-theAlphalist = 0.01;
+theAlphalist = 0.08;
 
 FEstlist = {};
 
@@ -75,20 +75,21 @@ end
 
 [T2spec,alpha_T2,T2fit] = FLI1d(data2,K2,-2,U2,S2,V2);
 
-% figure('rend','painters','pos',[10 10 900 250])
-% subplot(1,2,1)
-% semilogx(T2,FEstlist{1}.f,'r')
-% xlim([min(T2) max(T2)])
-% ylim([0 max(FEstlist{1}.f)])
-% xlabel('T_2 in seconds')
-% ylabel('a.u.')
-% subplot(1,2,2)
-% plot(tau2,real(DATA1d),tau2,imag(DATA1d))
-% xlim([0 max(tau2)])
-% xlabel('time in seconds')
-% ylabel('a.u.')
+figure(2)
+figure('rend','painters','pos',[10 10 900 250])
+subplot(1,2,1)
+semilogx(T2,FEstlist{1}.f,'r')
+xlim([min(T2) max(T2)])
+ylim([0 max(FEstlist{1}.f)])
+xlabel('T_2 in seconds')
+ylabel('a.u.')
+subplot(1,2,2)
+plot(tau2,real(DATA1d),tau2,imag(DATA1d))
+xlim([0 max(tau2)])
+xlabel('time in seconds')
+ylabel('a.u.')
 
-
+%
 
 %%%%% clock %%%%%
 endtime= cputime -initialtime;

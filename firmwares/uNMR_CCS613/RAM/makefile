@@ -2,9 +2,7 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-SHELL = cmd.exe
-
-CG_TOOL_ROOT := C:/ti/ccsv7/tools/compiler/ti-cgt-c2000_16.9.3.LTS
+CG_TOOL_ROOT := /Applications/ti/ccs920/ccs/tools/compiler/ti-cgt-c2000_18.12.3.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -44,7 +42,7 @@ ORDERED_OBJS += \
 "./SOURCE/main.obj" \
 "./SOURCE/nmr.obj" \
 "./SOURCE/nmr_plsq.obj" \
-"./SOURCE/tempcontoller.obj" \
+"./SOURCE/noe1dseq.obj" \
 "./freeMODBUS/ascii/mbascii.obj" \
 "./freeMODBUS/functions/mbfunccoils.obj" \
 "./freeMODBUS/functions/mbfuncdiag.obj" \
@@ -69,8 +67,8 @@ $(GEN_CMDS__FLAG) \
 
 -include ../makefile.init
 
-RM := DEL /F
-RMDIR := RMDIR /S/Q
+RM := rm -rf
+RMDIR := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
@@ -207,26 +205,27 @@ all: uNMR_CCS613.out
 
 # Tool invocations
 uNMR_CCS613.out: $(OBJS) $(CMD_SRCS) $(LIB_SRCS) $(GEN_CMDS)
-	@echo 'Building target: $@'
+	@echo 'Building target: "$@"'
 	@echo 'Invoking: C2000 Linker'
-	"C:/ti/ccsv7/tools/compiler/ti-cgt-c2000_16.9.3.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 -Ooff -g --display_error_number --diag_warning=225 --diag_wrap=off -z -m"uNMR_CCS613.map" --stack_size=0x300 --warn_sections -i"C:/ti/ccsv7/tools/compiler/ti-cgt-c2000_16.9.3.LTS/lib" -i"D:/ti/controlSUITE/device_support/f2833x/v141/DSP2833x_common/source" -i"C:/ti/ccsv7/tools/compiler/ti-cgt-c2000_16.9.3.LTS/include" --reread_libs --diag_wrap=off --display_error_number --xml_link_info="uNMR_CCS613_linkInfo.xml" --rom_model -o "uNMR_CCS613.out" $(ORDERED_OBJS)
-	@echo 'Finished building target: $@'
+	"/Applications/ti/ccs920/ccs/tools/compiler/ti-cgt-c2000_18.12.3.LTS/bin/cl2000" -v28 -ml -mt --float_support=fpu32 -Ooff --advice:performance=all -g --display_error_number --diag_warning=225 --diag_wrap=off -z -m"uNMR_CCS613.map" --stack_size=0x300 --warn_sections -i"/Applications/ti/ccs920/ccs/tools/compiler/ti-cgt-c2000_18.12.3.LTS/lib" -i"D:/ti/controlSUITE/device_support/f2833x/v141/DSP2833x_common/source" -i"/Applications/ti/ccs920/ccs/tools/compiler/ti-cgt-c2000_18.12.3.LTS/include" --reread_libs --display_error_number --diag_wrap=off --xml_link_info="uNMR_CCS613_linkInfo.xml" --rom_model -o "uNMR_CCS613.out" $(ORDERED_OBJS)
+	@echo 'Finished building target: "$@"'
 	@echo ' '
 
 uNMR_CCS613.hex: $(EXE_OUTPUTS)
+	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo 'Invoking: C2000 Hex Utility'
-	"C:/ti/ccsv7/tools/compiler/ti-cgt-c2000_16.9.3.LTS/bin/hex2000"  -o "uNMR_CCS613.hex" $(EXE_OUTPUTS__QUOTED)
-	@echo 'Finished building: $@'
+	"/Applications/ti/ccs920/ccs/tools/compiler/ti-cgt-c2000_18.12.3.LTS/bin/hex2000"  -o "uNMR_CCS613.hex" $(EXE_OUTPUTS__QUOTED)
+	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "DSP2833x\source\DSP2833x_GlobalVariableDefs.obj" "DSP2833x_common\source\DSP2833x_ADC_cal.obj" "DSP2833x_common\source\DSP2833x_Adc.obj" "DSP2833x_common\source\DSP2833x_CSMPasswords.obj" "DSP2833x_common\source\DSP2833x_CodeStartBranch.obj" "DSP2833x_common\source\DSP2833x_CpuTimers.obj" "DSP2833x_common\source\DSP2833x_DBGIER.obj" "DSP2833x_common\source\DSP2833x_DMA.obj" "DSP2833x_common\source\DSP2833x_DefaultIsr.obj" "DSP2833x_common\source\DSP2833x_DisInt.obj" "DSP2833x_common\source\DSP2833x_ECan.obj" "DSP2833x_common\source\DSP2833x_ECap.obj" "DSP2833x_common\source\DSP2833x_EPwm.obj" "DSP2833x_common\source\DSP2833x_EQep.obj" "DSP2833x_common\source\DSP2833x_Gpio.obj" "DSP2833x_common\source\DSP2833x_I2C.obj" "DSP2833x_common\source\DSP2833x_Mcbsp.obj" "DSP2833x_common\source\DSP2833x_MemCopy.obj" "DSP2833x_common\source\DSP2833x_PieCtrl.obj" "DSP2833x_common\source\DSP2833x_PieVect.obj" "DSP2833x_common\source\DSP2833x_Sci.obj" "DSP2833x_common\source\DSP2833x_Spi.obj" "DSP2833x_common\source\DSP2833x_SysCtrl.obj" 
-	-$(RM) "DSP2833x_common\source\DSP2833x_Xintf.obj" "DSP2833x_common\source\DSP2833x_usDelay.obj" "SOURCE\ADS1248 .obj" "SOURCE\PLL.obj" "SOURCE\RunNMR.obj" "SOURCE\asic.obj" "SOURCE\cpu_timer.obj" "SOURCE\gpio_init.obj" "SOURCE\main.obj" "SOURCE\nmr.obj" "SOURCE\nmr_plsq.obj" "SOURCE\tempcontoller.obj" "freeMODBUS\ascii\mbascii.obj" "freeMODBUS\functions\mbfunccoils.obj" "freeMODBUS\functions\mbfuncdiag.obj" "freeMODBUS\functions\mbfuncdisc.obj" "freeMODBUS\functions\mbfuncholding.obj" "freeMODBUS\functions\mbfuncinput.obj" "freeMODBUS\functions\mbfuncother.obj" "freeMODBUS\functions\mbutils.obj" "freeMODBUS\mb.obj" "freeMODBUS\portevent.obj" "freeMODBUS\portserial.obj" "freeMODBUS\porttimer.obj" "freeMODBUS\rtu\mbcrc.obj" "freeMODBUS\rtu\mbrtu.obj" "freeMODBUS\tcp\mbtcp.obj" 
-	-$(RM) "DSP2833x\source\DSP2833x_GlobalVariableDefs.d" "DSP2833x_common\source\DSP2833x_Adc.d" "DSP2833x_common\source\DSP2833x_CpuTimers.d" "DSP2833x_common\source\DSP2833x_DMA.d" "DSP2833x_common\source\DSP2833x_DefaultIsr.d" "DSP2833x_common\source\DSP2833x_ECan.d" "DSP2833x_common\source\DSP2833x_ECap.d" "DSP2833x_common\source\DSP2833x_EPwm.d" "DSP2833x_common\source\DSP2833x_EQep.d" "DSP2833x_common\source\DSP2833x_Gpio.d" "DSP2833x_common\source\DSP2833x_I2C.d" "DSP2833x_common\source\DSP2833x_Mcbsp.d" "DSP2833x_common\source\DSP2833x_MemCopy.d" "DSP2833x_common\source\DSP2833x_PieCtrl.d" "DSP2833x_common\source\DSP2833x_PieVect.d" "DSP2833x_common\source\DSP2833x_Sci.d" "DSP2833x_common\source\DSP2833x_Spi.d" "DSP2833x_common\source\DSP2833x_SysCtrl.d" "DSP2833x_common\source\DSP2833x_Xintf.d" "SOURCE\ADS1248 .d" "SOURCE\PLL.d" "SOURCE\RunNMR.d" "SOURCE\asic.d" "SOURCE\cpu_timer.d" "SOURCE\gpio_init.d" "SOURCE\main.d" "SOURCE\nmr.d" "SOURCE\nmr_plsq.d" "SOURCE\tempcontoller.d" "freeMODBUS\ascii\mbascii.d" 
-	-$(RM) "freeMODBUS\functions\mbfunccoils.d" "freeMODBUS\functions\mbfuncdiag.d" "freeMODBUS\functions\mbfuncdisc.d" "freeMODBUS\functions\mbfuncholding.d" "freeMODBUS\functions\mbfuncinput.d" "freeMODBUS\functions\mbfuncother.d" "freeMODBUS\functions\mbutils.d" "freeMODBUS\mb.d" "freeMODBUS\portevent.d" "freeMODBUS\portserial.d" "freeMODBUS\porttimer.d" "freeMODBUS\rtu\mbcrc.d" "freeMODBUS\rtu\mbrtu.d" "freeMODBUS\tcp\mbtcp.d" 
-	-$(RM) "DSP2833x_common\source\DSP2833x_ADC_cal.d" "DSP2833x_common\source\DSP2833x_CSMPasswords.d" "DSP2833x_common\source\DSP2833x_CodeStartBranch.d" "DSP2833x_common\source\DSP2833x_DBGIER.d" "DSP2833x_common\source\DSP2833x_DisInt.d" "DSP2833x_common\source\DSP2833x_usDelay.d" 
+	-$(RM) "DSP2833x/source/DSP2833x_GlobalVariableDefs.obj" "DSP2833x_common/source/DSP2833x_ADC_cal.obj" "DSP2833x_common/source/DSP2833x_Adc.obj" "DSP2833x_common/source/DSP2833x_CSMPasswords.obj" "DSP2833x_common/source/DSP2833x_CodeStartBranch.obj" "DSP2833x_common/source/DSP2833x_CpuTimers.obj" "DSP2833x_common/source/DSP2833x_DBGIER.obj" "DSP2833x_common/source/DSP2833x_DMA.obj" "DSP2833x_common/source/DSP2833x_DefaultIsr.obj" "DSP2833x_common/source/DSP2833x_DisInt.obj" "DSP2833x_common/source/DSP2833x_ECan.obj" "DSP2833x_common/source/DSP2833x_ECap.obj" "DSP2833x_common/source/DSP2833x_EPwm.obj" "DSP2833x_common/source/DSP2833x_EQep.obj" "DSP2833x_common/source/DSP2833x_Gpio.obj" "DSP2833x_common/source/DSP2833x_I2C.obj" "DSP2833x_common/source/DSP2833x_Mcbsp.obj" "DSP2833x_common/source/DSP2833x_MemCopy.obj" "DSP2833x_common/source/DSP2833x_PieCtrl.obj" "DSP2833x_common/source/DSP2833x_PieVect.obj" "DSP2833x_common/source/DSP2833x_Sci.obj" "DSP2833x_common/source/DSP2833x_Spi.obj" "DSP2833x_common/source/DSP2833x_SysCtrl.obj" 
+	-$(RM) "DSP2833x_common/source/DSP2833x_Xintf.obj" "DSP2833x_common/source/DSP2833x_usDelay.obj" "SOURCE/ADS1248 .obj" "SOURCE/PLL.obj" "SOURCE/RunNMR.obj" "SOURCE/asic.obj" "SOURCE/cpu_timer.obj" "SOURCE/gpio_init.obj" "SOURCE/main.obj" "SOURCE/nmr.obj" "SOURCE/nmr_plsq.obj" "SOURCE/noe1dseq.obj" "freeMODBUS/ascii/mbascii.obj" "freeMODBUS/functions/mbfunccoils.obj" "freeMODBUS/functions/mbfuncdiag.obj" "freeMODBUS/functions/mbfuncdisc.obj" "freeMODBUS/functions/mbfuncholding.obj" "freeMODBUS/functions/mbfuncinput.obj" "freeMODBUS/functions/mbfuncother.obj" "freeMODBUS/functions/mbutils.obj" "freeMODBUS/mb.obj" "freeMODBUS/portevent.obj" "freeMODBUS/portserial.obj" "freeMODBUS/porttimer.obj" "freeMODBUS/rtu/mbcrc.obj" "freeMODBUS/rtu/mbrtu.obj" "freeMODBUS/tcp/mbtcp.obj" 
+	-$(RM) "DSP2833x/source/DSP2833x_GlobalVariableDefs.d" "DSP2833x_common/source/DSP2833x_Adc.d" "DSP2833x_common/source/DSP2833x_CpuTimers.d" "DSP2833x_common/source/DSP2833x_DMA.d" "DSP2833x_common/source/DSP2833x_DefaultIsr.d" "DSP2833x_common/source/DSP2833x_ECan.d" "DSP2833x_common/source/DSP2833x_ECap.d" "DSP2833x_common/source/DSP2833x_EPwm.d" "DSP2833x_common/source/DSP2833x_EQep.d" "DSP2833x_common/source/DSP2833x_Gpio.d" "DSP2833x_common/source/DSP2833x_I2C.d" "DSP2833x_common/source/DSP2833x_Mcbsp.d" "DSP2833x_common/source/DSP2833x_MemCopy.d" "DSP2833x_common/source/DSP2833x_PieCtrl.d" "DSP2833x_common/source/DSP2833x_PieVect.d" "DSP2833x_common/source/DSP2833x_Sci.d" "DSP2833x_common/source/DSP2833x_Spi.d" "DSP2833x_common/source/DSP2833x_SysCtrl.d" "DSP2833x_common/source/DSP2833x_Xintf.d" "SOURCE/ADS1248 .d" "SOURCE/PLL.d" "SOURCE/RunNMR.d" "SOURCE/asic.d" "SOURCE/cpu_timer.d" "SOURCE/gpio_init.d" "SOURCE/main.d" "SOURCE/nmr.d" "SOURCE/nmr_plsq.d" "SOURCE/noe1dseq.d" "freeMODBUS/ascii/mbascii.d" 
+	-$(RM) "freeMODBUS/functions/mbfunccoils.d" "freeMODBUS/functions/mbfuncdiag.d" "freeMODBUS/functions/mbfuncdisc.d" "freeMODBUS/functions/mbfuncholding.d" "freeMODBUS/functions/mbfuncinput.d" "freeMODBUS/functions/mbfuncother.d" "freeMODBUS/functions/mbutils.d" "freeMODBUS/mb.d" "freeMODBUS/portevent.d" "freeMODBUS/portserial.d" "freeMODBUS/porttimer.d" "freeMODBUS/rtu/mbcrc.d" "freeMODBUS/rtu/mbrtu.d" "freeMODBUS/tcp/mbtcp.d" 
+	-$(RM) "DSP2833x_common/source/DSP2833x_ADC_cal.d" "DSP2833x_common/source/DSP2833x_CSMPasswords.d" "DSP2833x_common/source/DSP2833x_CodeStartBranch.d" "DSP2833x_common/source/DSP2833x_DBGIER.d" "DSP2833x_common/source/DSP2833x_DisInt.d" "DSP2833x_common/source/DSP2833x_usDelay.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

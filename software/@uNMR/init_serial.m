@@ -48,16 +48,21 @@ obj.device = 1;
 
 
     if ~isempty(obj.serial_port)
-%         set(obj.serial_port,'BaudRate',57600,'DataBits',8,'parity','even');
-        set(obj.serial_port,'BaudRate',128000,'DataBits',8,'parity','even'); % changed to 128000 on Oct 1, 2017
+        set(obj.serial_port,'BaudRate',57600,'DataBits',8,'parity','even'); % work on Yiqiao's macpro up to 115200
+        %set(obj.serial_port,'BaudRate',128000,'DataBits',8,'parity','even');
+        %% changed to 128000 on Oct 1, 2017. Does not work for Yiqiao's macpro
+        
         set(obj.serial_port,'timeout',1);
         % Specify Terminator
         obj.serial_port.terminator='';
 
         obj.serial_port;
 
-        if obj.serial_port.Status == 'closed'
+        if obj.serial_port.Status(1:4) == 'clos'
             fopen(obj.serial_port);
+            if obj.serial_port.Status(1:4) == 'clos'
+                disp 'Serial port not open'
+            end
         end
     else
         %uNNR_serial

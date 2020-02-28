@@ -18,15 +18,14 @@ if isempty(obj.serial_port)
     obj.init_serial();
 end
 
+if obj.serial_port.status(1)=='c'
+    fopen(obj.serial_port);
+end
 
-% if obj.serial_port.status(1)=='c'
-%     fopen(obj.serial_port);
-% end
-% 
-% if obj.serial_port.status(1)=='c'
-%     disp 'Could not open serial port'
-%     return;
-% end
+if obj.serial_port.status(1)=='c'
+    disp 'Could not open serial port'
+    return;
+end
 
  nreg = length(DATA);
  if nreg < 2
@@ -96,6 +95,12 @@ end
         disp 'Error. Cannot send to serial port.'
     end
     %pause(0.01);
+%     if obj.serial_port.Status(1)=='o'
+%         disp 'port open at write_registers'
+%     else
+%         disp 'port close at write_registers'
+%     end
+    
     outstring = fscanf(obj.serial_port,'%c',8);
     res = outstring;
     double(res);

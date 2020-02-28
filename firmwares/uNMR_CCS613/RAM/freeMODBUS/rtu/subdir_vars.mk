@@ -2,8 +2,6 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-SHELL = cmd.exe
-
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../freeMODBUS/rtu/mbcrc.c \
@@ -18,12 +16,12 @@ OBJS += \
 ./freeMODBUS/rtu/mbrtu.obj 
 
 OBJS__QUOTED += \
-"freeMODBUS\rtu\mbcrc.obj" \
-"freeMODBUS\rtu\mbrtu.obj" 
+"freeMODBUS/rtu/mbcrc.obj" \
+"freeMODBUS/rtu/mbrtu.obj" 
 
 C_DEPS__QUOTED += \
-"freeMODBUS\rtu\mbcrc.d" \
-"freeMODBUS\rtu\mbrtu.d" 
+"freeMODBUS/rtu/mbcrc.d" \
+"freeMODBUS/rtu/mbrtu.d" 
 
 C_SRCS__QUOTED += \
 "../freeMODBUS/rtu/mbcrc.c" \

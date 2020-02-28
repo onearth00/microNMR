@@ -2,8 +2,6 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-SHELL = cmd.exe
-
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../SOURCE/ADS1248\ .c \
@@ -15,7 +13,7 @@ C_SRCS += \
 ../SOURCE/main.c \
 ../SOURCE/nmr.c \
 ../SOURCE/nmr_plsq.c \
-../SOURCE/tempcontoller.c 
+../SOURCE/noe1dseq.c 
 
 C_DEPS += \
 ./SOURCE/ADS1248\ .d \
@@ -27,7 +25,7 @@ C_DEPS += \
 ./SOURCE/main.d \
 ./SOURCE/nmr.d \
 ./SOURCE/nmr_plsq.d \
-./SOURCE/tempcontoller.d 
+./SOURCE/noe1dseq.d 
 
 OBJS += \
 ./SOURCE/ADS1248\ .obj \
@@ -39,31 +37,31 @@ OBJS += \
 ./SOURCE/main.obj \
 ./SOURCE/nmr.obj \
 ./SOURCE/nmr_plsq.obj \
-./SOURCE/tempcontoller.obj 
+./SOURCE/noe1dseq.obj 
 
 OBJS__QUOTED += \
-"SOURCE\ADS1248 .obj" \
-"SOURCE\PLL.obj" \
-"SOURCE\RunNMR.obj" \
-"SOURCE\asic.obj" \
-"SOURCE\cpu_timer.obj" \
-"SOURCE\gpio_init.obj" \
-"SOURCE\main.obj" \
-"SOURCE\nmr.obj" \
-"SOURCE\nmr_plsq.obj" \
-"SOURCE\tempcontoller.obj" 
+"SOURCE/ADS1248 .obj" \
+"SOURCE/PLL.obj" \
+"SOURCE/RunNMR.obj" \
+"SOURCE/asic.obj" \
+"SOURCE/cpu_timer.obj" \
+"SOURCE/gpio_init.obj" \
+"SOURCE/main.obj" \
+"SOURCE/nmr.obj" \
+"SOURCE/nmr_plsq.obj" \
+"SOURCE/noe1dseq.obj" 
 
 C_DEPS__QUOTED += \
-"SOURCE\ADS1248 .d" \
-"SOURCE\PLL.d" \
-"SOURCE\RunNMR.d" \
-"SOURCE\asic.d" \
-"SOURCE\cpu_timer.d" \
-"SOURCE\gpio_init.d" \
-"SOURCE\main.d" \
-"SOURCE\nmr.d" \
-"SOURCE\nmr_plsq.d" \
-"SOURCE\tempcontoller.d" 
+"SOURCE/ADS1248 .d" \
+"SOURCE/PLL.d" \
+"SOURCE/RunNMR.d" \
+"SOURCE/asic.d" \
+"SOURCE/cpu_timer.d" \
+"SOURCE/gpio_init.d" \
+"SOURCE/main.d" \
+"SOURCE/nmr.d" \
+"SOURCE/nmr_plsq.d" \
+"SOURCE/noe1dseq.d" 
 
 C_SRCS__QUOTED += \
 "../SOURCE/ADS1248 .c" \
@@ -75,6 +73,6 @@ C_SRCS__QUOTED += \
 "../SOURCE/main.c" \
 "../SOURCE/nmr.c" \
 "../SOURCE/nmr_plsq.c" \
-"../SOURCE/tempcontoller.c" 
+"../SOURCE/noe1dseq.c" 
 
 

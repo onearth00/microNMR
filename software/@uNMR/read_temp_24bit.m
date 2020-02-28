@@ -20,7 +20,7 @@ disp 'offboard temp sensor'
 %    x=x(:)'
    
    y= dec2hex(single(outstring),2)';
-   y=y(:)'
+   y=y(:)';
     
    res = hex2dec(y);  
    
@@ -32,7 +32,7 @@ disp 'offboard temp sensor'
 %   b = 0
    c = -0.00000000000418301;
    % RTD resistance
-   Res_RTD = ((res*0.196695e-6)/4)/1e-3; 
+   Res_RTD = ((res*0.196695e-6)/4)/1e-3
    %print (Res_RTD)  
 
     temp_C1 = -(a*Res0) + sqrt(a*a*Res0*Res0 - 4*(b*Res0)*(Res0 - Res_RTD));

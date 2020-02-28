@@ -85,9 +85,13 @@ end
 
     try
         if reg_return_char ~=0
-            outstring = fscanf(obj.serial_port,'%c',reg_return_char);  % return in char format, and 7 char
+            [outstring,ncount,msg] = fscanf(obj.serial_port,'%c',reg_return_char);  % return in char format, and 7 char
         %outstring = fscanf(obj.serial_port);       % this should work too,
                                                     % but take longer to wait for time out.
+            if (ncount ~= 0) && (ncount ~= reg_return_char)
+                disp (['here number of read:' num2str(ncount)])
+                disp (['here msg:' msg])
+            end
         else
             outstring = fscanf(obj.serial_port);
         end

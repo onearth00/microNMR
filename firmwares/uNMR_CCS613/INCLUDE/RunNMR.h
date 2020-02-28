@@ -18,6 +18,8 @@
 
 #include "typeDefs.h"
 
+#include "nmr.h"
+#include "nmr_plsq.h"
 
 #define dataBufferTD 7000
 
@@ -25,8 +27,9 @@
 // NMR System Parameter settings
 typedef struct   {
 
-    	int  	asic_ver	; 									// 2013; 2014 - made in 2014
-    	int  	tuningcap	; 									// tuning cap voltage, 		default 1650
+    	Uint32  	asic_ver	; 									// 2013; 2014 - made in 2014
+    	Uint32  	tuningcap	; 									// tuning cap voltage, 		default 1650
+    	                                                            // 2019: update to 4-bytes to store 2 values. The lower 2bytes is default
     	int  	RecGain   	;   								// receiver gain, 			default 9
     	int     NA			;     								// number of aquisitions, 	default 20
     	int     DS			;     								// dummy scans, 			default 0
@@ -40,6 +43,7 @@ typedef struct   {
 		int     maxTD		;  									// max Time Delay (TD), 	default
 		int     acquiredTD	;  									// actual acquired TD, 		default
 		int     echoshape   ;                                   // echo shape recording in CPMG
+		long    tau         ;                                   // For T1 IR
 		long    RD			;     								// recycle delay, 			default
 		long    D[10]		;  									// ten delays used in pulse seq
 		int     P[10]		;  									// ten pulse length used in pulse seq
@@ -47,8 +51,8 @@ typedef struct   {
 		int     vd[10]		; 									// variable delay, for T1, diffusion, other other 2d
 		int     PL[10] 		; 									// power level
     	Uint32  Freq        ; 									// Resonant freq, set by fractional PLL
-    	long  nint        ;                                   // nint for pll
-    	long  nfrac       ;                                   // nfrac for pll
+    	Uint32  nint        ;                                   // nint for pll
+    	Uint32  nfrac       ;                                   // nfrac for pll
     	int     dummyecho ;
     	char			SEQ[10];
     	char			note[20];
@@ -72,13 +76,14 @@ enum p_index {
 	i_TD1,
 	i_TD2,
 	i_maxTD,
-	i_acqiredTD,
+	i_acquiredTD,
 	i_RD,
 	i_freq,
 	i_echoshape,
 	i_nint,
 	i_nfrac,
 	i_dummyecho,
+	i_tau,
 	i_error			// always keep i_error the last one
 };
 
@@ -116,12 +121,26 @@ Uint32	GetNMRParameters(int index);
 int GetNMRData(int index, int16 *realpart, int16 *imagpart);
 void Do_NMR_experiments(int seqnum);
 int Run_NMR_FID(void);
+int Run_NMR_FID_mcbsp(void);
+int Run_NMR_CPMG_mcbsp(void);
+int Run_NMR_Tuning_mcbsp(void);
+int Run_NMR_IR_mcbsp(void);
+int Run_NMR_IRCPMG_mcbsp(void);
+
+int Run_NMR_TuningCurve_mcbsp(void);    // obtain all curves for the scans of freq and tuningcap
 
 int Run_NMR_Tuning(void);
 int Run_NMR_CPMG(void);
 
 // local
 Uint32 mcsb32bitWordFromADC();
+
+
+int Run_NMR_Accumulate_mcbsp(PlsSeq *inSeq, unsigned long expTime, int DwellTime, int TD, int inAcqPhase);
+int Run_NMR_Accumulate_tuning_mcbsp(PlsSeq *inSeq, unsigned long expTime, int DwellTime, int TD, int inAcqPhase);
+
+int Run_NMR_Accumulate_CPMG_mcbsp(PlsSeq *inSeq, unsigned long expTime, int DwellTime, int dummyecho, int TD, int inAcqPhase, int NPTS, int *echoFilter1);
+
 
 
 #endif /* INCLUDE_RUNNMR_H_ */

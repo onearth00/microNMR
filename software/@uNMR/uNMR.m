@@ -35,6 +35,10 @@ classdef uNMR < handle
             try
                 obj = init_serial(obj, portID);
 %                 obj = init_serial(obj);
+            catch 
+                disp  ' ------------------- '
+                disp 'Serial port not initialized properly.'
+                disp ' ------------------- '
             end
         end %uNMR()/
         

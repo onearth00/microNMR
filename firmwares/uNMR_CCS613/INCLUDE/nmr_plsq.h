@@ -54,7 +54,9 @@ typedef struct {
 
 
 Uint32 FID2 (PlsSeq* plsq, Uint32 *parameters);
+Uint32 IR (PlsSeq* plsq, Uint32 *parameters);
 Uint32 CPMG2 (PlsSeq* plsq, Uint32 *parameters);
+Uint32 IRCPMG (PlsSeq* plsq, Uint32 *parameters);
 
 Uint32 TuningSeq (PlsSeq* plsq, Uint32 *parameters);
 

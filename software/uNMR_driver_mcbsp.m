@@ -1,10 +1,30 @@
 % uNMR driver
 % YT July 2017 --
 % implement mcbsp features
+% bug fixed, 2019 nov, YS
+% this, uNMR.m, init_serial.m, 
 clear
-myNMR = uNMR('COM3')
+
+% to see the list of serial ports
+% x = seriallist
+
+% PC serial ports are identified by 'COM1', 'COM2', etc
+portName = 'COM3';
+%myNMR = uNMR(portName)
+
+% for mac, use x = seriallist to look for serial ports
+portName = '/dev/cu.usbserial-FT0GEBSB';
+
+
+myNMR = uNMR(portName);
+%
+myNMR.serial_port;
+
+%%
 % bootup diagnosis
 BootupDiagnosis(pindex,myNMR);
+
+
 %% read sequence from TI 
 myNMR.readstatus()
 seq=myNMR.read_NMR_seq();

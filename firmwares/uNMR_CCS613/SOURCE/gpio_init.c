@@ -341,44 +341,7 @@ void InitEPwm2()															// GPIO Pin02 asic CLK_CTRL 15MHz
    EPwm2Regs.ETPS.bit.INTPRD 				= ET_3RD;           			// Generate INT on 3rd event
 }
 
-//SPI Temp Sens LM95071
-Uint16 spi_temp_board()
-{
-	Uint32 i;																// variable declaration
-	Uint16 TEMP_read;														// variable declaration
 
-
-	configure_SPI(0,1, 15, 1, 20); // Uint16 POL, Uint16 PHA, Uint16 BITS, Uint16 nFIFO, Uint16 ClkSpeedDiv);
-
-/*
-	SpiaRegs.SPICCR.bit.CLKPOLARITY			= 0;							// 0, 1 all transmit's on rising edge delayed by 1/2 clk. Inactive lo   0 1
-	SpiaRegs.SPICTL.bit.CLK_PHASE 			= 1;							// 1, 0 all transmit's on falling edge. Inactive Hi 1 0
-																			// 1, 1 all transmit's on falling edge delayed by 1/2 clk. Inactive Hi
-	for (i=0;i<20;i++){asm(" NOP");}										// NOP gives setup time to CLKPOLARITY and PHASE
-	GpioCtrlRegs.GPBPUD.bit.GPIO55 			= 1;	   						// disable pull-up for GPIO55 SPI_MISOA
-	SpiaRegs.SPICCR.bit.SPICHAR 			= 0x0F;							// 16 bit word length
-	SpiaRegs.SPIFFRX.bit.RXFFIL				= 1;							// number states how many words fill FIFO
-
-
-	SpiaRegs.SPIFFRX.bit.RXFIFORESET 		= 0;							// 0 to reset the FIFO and hold in reset
-	SpiaRegs.SPIFFRX.bit.RXFIFORESET 		= 1;							// 1 to Re-enable FIFO
-	SpiaRegs.SPIFFRX.bit.RXFFINTCLR 		= 1;							// 1 to clear fag of RXFIFORESET
-*/
-
-	GpioDataRegs.GPCCLEAR.bit.GPIO75 		= 1;							// CS active low
-
-	for (i=0;i<10;i++){asm(" NOP");}										// recommended delay
-	SpiaRegs.SPITXBUF = 0x0000;											// the tx data is not wired to yhe chip.
-
-	for (i=0;i<20;i++){asm(" NOP");}
-	while(SpiaRegs.SPIFFRX.bit.RXFFINT 		!= 1){}							// while RXFFINT FIFO interupt bit !=1, wait
-
-	for (i=0;i<5;i++){asm(" NOP");}
-	GpioDataRegs.GPCSET.bit.GPIO75 			= 1;							// RX FIFO interupt bit =1, set GPIO75 =1 (Hi)
-
-	TEMP_read = (Uint16)(SpiaRegs.SPIRXBUF) >> 2 ;							// ROR by 2 gets rid of unwanted lsb's
-	return TEMP_read;
-}
 
 // McBSP-B register config
 void setup_McbspbSpi()
@@ -416,9 +379,9 @@ void setup_McbspbSpi()
     McbspbRegs.SRGR2.bit.CLKSM	= 1;										// input clock for the sample rate generator is taken from the LSPCLK
     McbspbRegs.SRGR2.bit.FSGM	= 0;										//
     //McbspbRegs.SRGR2.bit.FPER	= 124;										// The period between FSG is FPER+1 = 32cycles FSG width is determined by FWID
-    McbspbRegs.SRGR2.bit.FPER	= 41;										// The period between FSG is FPER+1 = 32cycles FSG width is determined by FWID
+    McbspbRegs.SRGR2.bit.FPER	= 49;										// The period between FSG is FPER+1 = 32cycles FSG width is determined by FWID
     McbspbRegs.SRGR1.all		= 0x0000;	    							// Frame Width = 1 CLKG period, CLKGDV=16
-    McbspbRegs.SRGR1.bit.CLKGDV	= 17;	    								// CLKG freq = LSPCLK/(CLKGDV + 1) = 75MHz/(9 + 1) = 0.5MHz
+    McbspbRegs.SRGR1.bit.CLKGDV	= 14;	    								// CLKG freq = LSPCLK/(CLKGDV + 1) = 75MHz/(9 + 1) = 0.5MHz
     McbspbRegs.SRGR1.bit.FWID	= 0x02;										// Frame-synchronization pulse width for FSG = 2 x 13.3ns (LTC1407A min is 2ns)
     McbspbRegs.SPCR2.bit.GRST	= 0;         								// Sample rate generator enabled
     delay_loop();
@@ -456,7 +419,56 @@ Uint32 mcsb32bitWordFromADC()
     return 0;
 }
 
-//SPI DAC LTC2630
+
+// **********************************************************
+// ************* SPI interfaces
+//
+//SPI Temp Sens LM95071
+//
+
+Uint16 spi_temp_board()
+{
+    Uint32 i;                                                               // variable declaration
+    Uint16 TEMP_read;                                                       // variable declaration
+
+
+    configure_SPI(0,1, 15, 1, 20); // Uint16 POL, Uint16 PHA, Uint16 BITS, Uint16 nFIFO, Uint16 ClkSpeedDiv);
+
+/*
+    SpiaRegs.SPICCR.bit.CLKPOLARITY         = 0;                            // 0, 1 all transmit's on rising edge delayed by 1/2 clk. Inactive lo   0 1
+    SpiaRegs.SPICTL.bit.CLK_PHASE           = 1;                            // 1, 0 all transmit's on falling edge. Inactive Hi 1 0
+                                                                            // 1, 1 all transmit's on falling edge delayed by 1/2 clk. Inactive Hi
+    for (i=0;i<20;i++){asm(" NOP");}                                        // NOP gives setup time to CLKPOLARITY and PHASE
+    GpioCtrlRegs.GPBPUD.bit.GPIO55          = 1;                            // disable pull-up for GPIO55 SPI_MISOA
+    SpiaRegs.SPICCR.bit.SPICHAR             = 0x0F;                         // 16 bit word length
+    SpiaRegs.SPIFFRX.bit.RXFFIL             = 1;                            // number states how many words fill FIFO
+
+
+    SpiaRegs.SPIFFRX.bit.RXFIFORESET        = 0;                            // 0 to reset the FIFO and hold in reset
+    SpiaRegs.SPIFFRX.bit.RXFIFORESET        = 1;                            // 1 to Re-enable FIFO
+    SpiaRegs.SPIFFRX.bit.RXFFINTCLR         = 1;                            // 1 to clear fag of RXFIFORESET
+*/
+
+    GpioDataRegs.GPCCLEAR.bit.GPIO75        = 1;                            // CS active low
+
+    for (i=0;i<10;i++){asm(" NOP");}                                        // recommended delay
+    SpiaRegs.SPITXBUF = 0x0000;                                         // the tx data is not wired to yhe chip.
+
+    for (i=0;i<20;i++){asm(" NOP");}
+    while(SpiaRegs.SPIFFRX.bit.RXFFINT      != 1){}                         // while RXFFINT FIFO interupt bit !=1, wait
+
+    for (i=0;i<5;i++){asm(" NOP");}
+    GpioDataRegs.GPCSET.bit.GPIO75          = 1;                            // RX FIFO interupt bit =1, set GPIO75 =1 (Hi)
+
+    TEMP_read = (Uint16)(SpiaRegs.SPIRXBUF) >> 2 ;                          // ROR by 2 gets rid of unwanted lsb's
+    return TEMP_read;
+}
+
+// **************************************************
+// *************** interfacing with DAC for tuning
+// chip select is at GpioDataRegs.GPCSET.bit.GPIO57
+//
+// SPI DAC LTC2630
 void spi_dac(Uint16 a)														// SPI dac function configuration
 {
 	configure_SPI(0,1, 7, 3, 9); // Uint16 POL, Uint16 PHA, Uint16 BITS, Uint16 nFIFO, Uint16 ClkSpeedDiv);
@@ -483,7 +495,9 @@ void spi_dac(Uint16 a)														// SPI dac function configuration
 	asm(" NOP");															// NOP gives time at the end of SPI TX before enable goes Hi
 	while(SpiaRegs.SPIFFRX.bit.RXFFINT !=1){}								// while RXFFINT FIFO interupt bit !=1, wait
 	GpioDataRegs.GPBSET.bit.GPIO57 		=1;									// RX FIFO interupt bit =1, set GPIO57 =1 (Hi)
-	led_blink_D42();                                        				// Test led blink
+	led_blink_D42();
+	DELAY_US(100);// Test led blink
+	led_blink_D42();
 
 }
 
@@ -535,8 +549,8 @@ void spi_dac_MCC(Uint16 a)														// SPI dac function configuration
 	asm(" NOP");															// NOP gives time at the end of SPI setup before SPITX
 	asm(" NOP");															// NOP gives time at the end of SPI setup before SPITX
 	SpiaRegs.SPITXBUF = 0x30 << 8;											// Load SPITXBUF DAC control 0x30
-	SpiaRegs.SPITXBUF = a;													// Load SPITXBUF upper 8bits right shifted << 4
-	SpiaRegs.SPITXBUF = a << 8;												// Load SPITXBUF lower 8bits right shifted << 4 + additional << 8
+	SpiaRegs.SPITXBUF = a << 4;													// Load SPITXBUF upper 8bits right shifted << 4
+	SpiaRegs.SPITXBUF = a << 12;												// Load SPITXBUF lower 8bits right shifted << 4 + additional << 8
 																			// 24bit word to DAC when only sending 2x8bits via ModBus
 	asm(" NOP");															// NOP gives time at the end of SPI TX before enable goes Hi
 	while(SpiaRegs.SPIFFRX.bit.RXFFINT !=1){}								// while RXFFINT FIFO interupt bit !=1, wait
@@ -546,10 +560,11 @@ void spi_dac_MCC(Uint16 a)														// SPI dac function configuration
 }
 
 
+// ********************************************************************
+// *************** interfacing with PLL
+// chip select is at GpioDataRegs.GPCSET.bit.GPIO72
 
-
-
-// SPI PLL HMC835
+// SPI PLL HMC832
 void PLL_init()																// initial 100 MHz setting at start up
 {
 	DELAY_US(100);															// 	100us delay
@@ -558,7 +573,7 @@ void PLL_init()																// initial 100 MHz setting at start up
 	PLL_write(2, 0x000001);       											//	REF divide register, range (1 to 16383)d
 	DELAY_US(100);															// 	100us delay
 //	PLL_write(3, 0x000059);         										//	VCO freq register, range 16 to 524284)d
-	PLL_write(3, 0x3E);                                                                          // RTang, change the value to 3E (62d), 8/22/17
+	PLL_write(3, 0x3E);                                                     // RTang, change the value to 3E (62d), 8/22/17
 	DELAY_US(100);															// 	100us delay
 
 // Register 0x05 is a special register used for indirect addressing of the VCO subsystem
@@ -616,6 +631,8 @@ Uint32 spi_PLL_read(Uint8 reg)
 }
 
 
+
+
 // SPI PLL HMC832
 // update freq
 // Input freq in unit of Hertz
@@ -628,7 +645,7 @@ Uint32 PLL_freq_set2(long Nint,long Nfrac)                                      
 {
 //    Uint32 k = 62, R=1;                     // The current PLL_init sets vco_reg_0x02 to 49d and pll_0x02 to 1. 8/22/2017
 //    Uint32 N1;
-      Uint32 data_reg16, temp1;
+      Uint32 data_reg16, temp1, temp2, temp3;
 //    Uint32 N2 ;
 //    double x;
 
@@ -687,26 +704,49 @@ Uint32 PLL_freq_set2(long Nint,long Nfrac)                                      
     DELAY_US(100);                                                          //  100us delay
 
 
-    PLL_write(5, 0);        //  VCO_DATA = 0_0000_0000, VCO_REGADDR= 0000, VCO ID=000
+    PLL_write(5, 0x0);        //  VCO_DATA = 0_0000_0000, VCO_REGADDR= 0000, VCO ID=000
     DELAY_US(100);
     PLL_write(3, Nint);                                                    //  VCO freq register, range 16 to 524284)d
     DELAY_US(100);                                                         //  100us delay
     PLL_write(4, Nfrac);                                                   //  Freq register (fractional), range (0 to 16777215)d 45986644.00 Hz
+
     // here is to follow the procedure from manual page 16
-    data_reg16 = spi_PLL_read(16);
-
-    temp1 = data_reg16 <<8;
-    temp1 = temp1|0x2000; //raise [13] = 1
-    temp1 = temp1 & 0xFF00; //set [0 - 7 ] = 0
-
-    //data_reg16 >>=1;
-
-    PLL_write(5, temp1); // this is to follow procedure on manual page 16.
-    DELAY_US(100);
+//    data_reg16 = spi_PLL_read(16);
+//
+//    temp1 = data_reg16 << 8;
+//    temp2 = temp1|0x2000; //raise [13] = 1
+//    temp3 = temp2 & 0xFF00; //set [0 - 7 ] = 0
+//
+//    //data_reg16 >>=1;
+//
+//    PLL_write(5, temp3); // this is to follow procedure on manual page 16.
+//    DELAY_US(100);
 
 //    return data_reg16;
-    return temp1;
+//    return temp1;
+    return 0;
 }
+
+// use PLL_freq_set2, but input full freq as a 32-bit int
+// return is not set yet.
+// YS nov 2019
+Uint32 PLL_freq_set3(Uint32 inFreq)
+{
+    Uint32 k = 62, R=1;                     // The current PLL_init sets vco_reg_0x02 to 49d and pll_0x02 to 1. 8/22/2017
+    double x;
+    Uint32 N1,N2;
+
+    x = (double)inFreq*k*(R)/freqxtal; //R-1 in DM's python code??
+    N1 = floor(x);
+    x = x-N1;
+
+    N2=floor(x*TWO_POW_24);
+
+    return PLL_freq_set2(N1,N2);
+
+
+}
+
 
 
 Uint32 PLL_freq_set(Uint32 inFreq)																// initial 100 MHz setting at start up
@@ -804,7 +844,7 @@ void PLL_mosi(Uint16 msb, Uint16 lsb)										// mosi spi function config
 	SpiaRegs.SPICTL.bit.CLK_PHASE 		= 0;
 	//GpioDataRegs.GPCSET.bit.GPIO72      = 1;
 	for (i=0;i<100;i++){asm(" NOP");}
-	GpioDataRegs.GPCCLEAR.bit.GPIO72 	= 1;
+	GpioDataRegs.GPCCLEAR.bit.GPIO72 	= 1;                                // This must be the chip select (CS), set to low
 	SpiaRegs.SPICCR.bit.SPICHAR 		= 0x00F;
 	SpiaRegs.SPIFFRX.bit.RXFFIL			= 2;
 
@@ -821,7 +861,7 @@ void PLL_mosi(Uint16 msb, Uint16 lsb)										// mosi spi function config
 	SpiaRegs.SPITXBUF = msb;
 	SpiaRegs.SPITXBUF = lsb;
 	while(SpiaRegs.SPIFFRX.bit.RXFFINT !=1){}
-	GpioDataRegs.GPCSET.bit.GPIO72 		= 1;
+	GpioDataRegs.GPCSET.bit.GPIO72 		= 1;                            // CS set to high to stop
 
 }
 
@@ -851,3 +891,134 @@ Uint32 PLL_freq_set_orig(Uint32 inFreq)
 	SetNMRParameters(18,N2);
 	return 1;
 }
+
+// ************************************************************************************
+// below functions are for the 24-bit temp sensor ADS1248
+// ADS1248, magnet temp sensor initialize
+//
+// chip select is connected to GpioDataRegs.GPCSET.bit.GPIO74.
+//
+void magnet_temp_init()
+{
+       DELAY_US(10);
+       magnet_temp_reset();
+       DELAY_US(1000);
+       magnet_temp_sdatac();
+       DELAY_US(10);
+       magnet_temp_write(0x0, 0x08);                                                                          //  +ve input AN1, -ve input AN0
+       DELAY_US(10);
+       magnet_temp_write(0x1, 0x00);                                                                          //  Bias voltage of mid-supply (AVDD + AVSS) / 2, not enabled
+       DELAY_US(10);
+       magnet_temp_write(0x2, 0x20);                                                                          //  Internal reference selected
+       DELAY_US(10);
+       magnet_temp_write(0x3, 0x20);                                                                          //  PGA = 4
+       DELAY_US(10);
+       magnet_temp_write(0xA, 0x04);                                                                          //  Excitation Current Magnitude 500uA
+       DELAY_US(10);
+       magnet_temp_write(0xB, 0x8C);                                                                          //  IDAC Output 1 IEXC1 Output 2 disabled
+       DELAY_US(10);
+       magnet_temp_write(0xC, 0x03);                                                                          //  GPIO 0/1 set for REFP0 & REFN0
+       DELAY_US(10);
+       magnet_temp_write(0xD, 0x03);                                                                          //  REFP0 & REFN0 config as inputs
+       DELAY_US(10);
+       magnet_temp_write(0xE, 0x03);                                                                          //  REFP0 & REFN0 config as input
+       DELAY_US(10);
+       magnet_temp_sync();
+       DELAY_US(10);
+}
+
+// ADS1248, magnet temp sensor reset command
+void magnet_temp_reset()
+{
+       Uint8 cmds[1];
+       cmds[0] = (0x6);
+       magnet_temp_mosi(1, cmds);
+}
+
+// ADS1248, magnet temp sensor sync command
+void magnet_temp_sync()
+{
+       Uint8 cmds[1];
+       cmds[0] = (0x4);
+       magnet_temp_mosi(1, cmds);
+}
+
+// ADS1248, magnet temp sensor serial read
+void magnet_temp_sdatac()
+{
+       Uint8 cmds[1];
+       cmds[0] = (0x16);
+       magnet_temp_mosi(1, cmds);
+}
+
+
+// ADS1248, magnet temp write (data valid on leadig edge)
+void magnet_temp_write(Uint8 reg, Uint8 data)
+{
+       Uint8 cmds[3];
+       cmds[0] = (0b01000000 + reg);
+       cmds[1] = 0;
+       cmds[2] = data;
+       magnet_temp_mosi(3, cmds);
+}
+
+// ADS1248, magnet register read ADS1248
+Uint8 magnet_reg_read(Uint8 reg)
+{
+       Uint8 cmds[3];
+       cmds[0] = (0b00100000 + reg);
+       cmds[1] = 0x0;
+       cmds[2] = 0xFF;
+       magnet_temp_mosi(3, cmds);
+       return cmds[2];
+}
+
+// ADS1248, magnet temp read ADS1248
+Uint32 magnet_temp_read(Uint8 ADC)
+{
+       Uint8 cmds[4];
+       Uint32 data;
+       cmds[0] = (0b00010010 + ADC);
+       cmds[1] = 0xFF;
+       cmds[2] = 0xFF;
+       cmds[3] = 0xFF;
+       magnet_temp_mosi(4, cmds);
+       data=(((Uint32)cmds[1])<<16)+(((Uint32)cmds[2])<<8)+(((Uint32)cmds[3]));
+       return data;
+
+}
+
+void magnet_temp_mosi(Uint8 nBytes, Uint8 *data)                                              // mosi spi function config
+{
+       Uint32 i;
+       SpiaRegs.SPIBRR                                       = 0x0040;                                       // Baud Rate Register
+       SpiaRegs.SPICCR.bit.CLKPOLARITY         = 0;                                                   // MOSI on falling edge, MISO on fall edge
+       SpiaRegs.SPICTL.bit.CLK_PHASE           = 0;
+       //GpioDataRegs.GPCSET.bit.GPIO72      = 1;
+       for (i=0;i<100;i++){asm(" NOP");}
+       GpioDataRegs.GPCCLEAR.bit.GPIO74        = 1;                         // Chip select, CS, goes low.
+       SpiaRegs.SPICCR.bit.SPICHAR             = 0x007;
+       SpiaRegs.SPIFFRX.bit.RXFFIL                    = nBytes;
+       SpiaRegs.SPIFFRX.bit.RXFIFORESET        = 0;
+       SpiaRegs.SPIFFRX.bit.RXFIFORESET        = 1;
+       SpiaRegs.SPIFFRX.bit.RXFFINTCLR = 1;
+       asm(" NOP");
+       asm(" NOP");
+       asm(" NOP");
+       asm(" NOP");
+       asm(" NOP");
+       asm(" NOP");
+       asm(" NOP");
+       for (i=0;i<nBytes;i++)
+              SpiaRegs.SPITXBUF = ((Uint16)(data[i]))<<8;
+       while(SpiaRegs.SPIFFRX.bit.RXFFINT !=1){}
+       for (i=0;i<20;i++) {asm(" NOP");}
+       GpioDataRegs.GPCSET.bit.GPIO74          = 1;                     // CS goes high
+       for (i=0;i<nBytes;i++)
+       {
+              data[i]=(SpiaRegs.SPIRXBUF);
+       }
+
+}
+
+

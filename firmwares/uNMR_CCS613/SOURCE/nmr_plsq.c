@@ -252,7 +252,6 @@ Uint32 FID2 (PlsSeq* plsq, Uint32 *parameters)
     tmp = PlsGenDelay(ad);          // ad for ringdown
     plscpy(&plsq->pls[i++], &tmp );
 
-
     // acquisition
     TMOD = (p[4]*p[5]) % MAXT_NMR;
     nprd  = (p[4]*p[5]) / MAXT_NMR;
@@ -302,7 +301,7 @@ Uint32 TuningSeq (PlsSeq* plsq, Uint32 *parameters)
     Uint32 *p = parameters;
 
     Uint32 i,j;
-    Uint32 ad = 20; // acq delay, 20 us before acqusition, for ringdown
+    Uint32 ad = 20; // acq delay, 20 us before acquisition, for ringdown
 
     Uint32 recDelay = p[0];
 
@@ -323,7 +322,7 @@ Uint32 TuningSeq (PlsSeq* plsq, Uint32 *parameters)
 
 
      // P90 - just a pulse, relatively long
-     // acquisition during the pulse will be handled in the acquistion program.
+     // acquisition during the pulse will be handled in the acquisition program.
      tmp = PlsGenPulse(p[1], p[2], p[3],0);
      plscpy(&plsq->pls[i++], &tmp );
 
@@ -451,6 +450,120 @@ Uint32 CPMG2 (PlsSeq* plsq, Uint32 *p)
     // in  microsecond
 }// end of CPMG2
 
+//inversion-recovery seq for T1 measurement
+// IRCPMG
+// FID pulse sequence generation
+// parameter form :
+// [0]  : RD,
+// [1-3]: T90, amp, ph1,
+// [4-5]: T180, ph2, P180 time and phase
+// [6]: dw
+// [7]: TD
+// [8]: tau, recovery time
+// return the total period of time for the experiment
+
+Uint32 IR (PlsSeq* plsq, Uint32 *parameters)
+{
+    Uint32 *p = parameters;
+
+    Uint32 i,j;
+    Uint32 ad = 20; // acq delay, 20 us before acqusition, for ringdown
+
+ //   Uint32 dw = p[6]; // dwell time, 10us.
+    Uint32 recDelay = p[0];
+ //   Uint32 tau = p[8];
+
+    // Recycle Delay
+    // the max time period for one step is 24 bit, ~1 s at 15 Mhz
+    // MAXT_NMR in unit of us.
+    Uint32 TMOD = recDelay % MAXT_NMR;
+    Uint32 nprd  = recDelay / MAXT_NMR;
+    SglPls tmp;
+
+    i = 0;
+
+    // RD
+    if (nprd != 0)
+    {
+       for (j=0;j<nprd; j++) {
+           tmp = PlsGenDelay(MAXT_NMR);
+           plscpy(&plsq->pls[i++], &tmp );
+       }
+    }
+
+    if (TMOD!=0)
+    {
+        tmp = PlsGenDelay(TMOD);
+        plscpy(&plsq->pls[i++], &tmp );
+    }
+
+    // P180
+    tmp = PlsGenPulse(p[4], p[2], p[5],0);
+    plscpy(&plsq->pls[i++], &tmp );
+
+    // recovery
+
+    TMOD = p[8] % MAXT_NMR;
+    nprd = p[8] / MAXT_NMR;
+
+       if (nprd != 0)
+       {
+          for (j=0;j<nprd; j++) {
+              tmp = PlsGenDelay(MAXT_NMR);
+              plscpy(&plsq->pls[i++], &tmp );
+          }
+       }
+
+       if (TMOD!=0)
+       {
+           tmp = PlsGenDelay(TMOD);
+           plscpy(&plsq->pls[i++], &tmp );
+       }
+
+    // P90
+    tmp = PlsGenPulse(p[1], p[2], p[3],0);
+    plscpy(&plsq->pls[i++], &tmp );
+
+    tmp = PlsGenDelay(ad);          // ad for ringdown
+    plscpy(&plsq->pls[i++], &tmp );
+
+    // acquisition
+    TMOD = (p[6]*p[7]) % MAXT_NMR;
+    nprd  = (p[6]*p[7]) / MAXT_NMR;
+    if (nprd != 0)
+    {
+        for (j=0;j<nprd; j++) {
+           tmp = PlsGenACQ(p[6],MAXT_NMR/p[6]);
+      //     tmp = PlsGenDelay(MAXT_NMR);
+            plscpy(&plsq->pls[i++], &tmp );
+            }
+        }
+
+        tmp = PlsGenACQ(p[6],TMOD/p[6]);
+        // tmp=PlsGenDelay(TMOD);
+        plscpy(&plsq->pls[i++], &tmp );
+
+        tmp = PlsGenDelay(100);
+        plscpy(&plsq->pls[i++], &tmp );
+
+        for (;i < 64; i++) {
+                plsq->pls[i].dword[0] = plsq->pls[i].dword[1] = 0;
+            }
+
+         recDelay = 0;
+
+         for (i=0;i<64;i++)
+            {
+                recDelay += GetPlsTime(&(plsq->pls[i]));
+                // DBPRINTF("plsgen [%08x %08x]\n", plsq->pls[i].dword[1], plsq->pls[i].dword[0]);
+                // expTime is in the unit of ticks on the NMR board. Each tick is 1/8 us.
+                // The NMR board clock is 15MHz.
+            }
+
+            return recDelay/US_NMR; // in microsecond
+
+ }
+
 // IRCPMG
 // FID pulse sequence generation
 // parameter form :
@@ -460,8 +573,10 @@ Uint32 CPMG2 (PlsSeq* plsq, Uint32 *p)
 // [6-8]: TE, Necho, NPTS : echo time, and number of echoes, and number of pt per echo
 // [9]: dw
 // [10]: tau1, recovery time
+// [11]:phase of 1st 180 pulse
 // return the total period of time for the experiment
-//
+// expTime = p[0] + p[4] + p[10]+ p[1] + TE/2 + (TE + p[4])*Necho;
+
 Uint32 IRCPMG (PlsSeq* plsq, Uint32 *parameters)
 {
     Uint32 *p = parameters;
@@ -502,13 +617,25 @@ Uint32 IRCPMG (PlsSeq* plsq, Uint32 *parameters)
 
 
     // P180
-    tmp = PlsGenPulse(p[4], p[2], p[5],0);
+    tmp = PlsGenPulse(p[4], p[2], p[11],0);
     plscpy(&plsq->pls[i++], &tmp );
 
     // recovery
-    tmp = PlsGenDelay(p[10]);
-    plscpy(&plsq->pls[i++], &tmp );
+    TMOD = p[10] % MAXT_NMR;
+    nprd = p[10] / MAXT_NMR;
 
+    if (nprd != 0){
+        for (j=0;j<nprd; j++) {
+                 tmp = PlsGenDelay(MAXT_NMR);
+                 plscpy(&plsq->pls[i++], &tmp );
+             }
+          }
+
+          if (TMOD!=0)
+          {
+              tmp = PlsGenDelay(TMOD);
+              plscpy(&plsq->pls[i++], &tmp );
+          }
 
     // P90
     tmp = PlsGenPulse(p[1], p[2], p[3],0);

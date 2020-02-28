@@ -2,8 +2,6 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-SHELL = cmd.exe
-
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../DSP2833x/source/DSP2833x_GlobalVariableDefs.c 
@@ -15,10 +13,10 @@ OBJS += \
 ./DSP2833x/source/DSP2833x_GlobalVariableDefs.obj 
 
 OBJS__QUOTED += \
-"DSP2833x\source\DSP2833x_GlobalVariableDefs.obj" 
+"DSP2833x/source/DSP2833x_GlobalVariableDefs.obj" 
 
 C_DEPS__QUOTED += \
-"DSP2833x\source\DSP2833x_GlobalVariableDefs.d" 
+"DSP2833x/source/DSP2833x_GlobalVariableDefs.d" 
 
 C_SRCS__QUOTED += \
 "../DSP2833x/source/DSP2833x_GlobalVariableDefs.c" 

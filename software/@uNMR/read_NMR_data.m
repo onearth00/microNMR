@@ -32,7 +32,7 @@ end
         y0 = read1chunk(obj,k);
         y = [y y0];
     end
-    size(y)
+    size(y);
 %disp(['NMR data:' num2str(y)])
 %disp([howmany sqrt(max(y)-1) length(y)])
 % pause(0.01)

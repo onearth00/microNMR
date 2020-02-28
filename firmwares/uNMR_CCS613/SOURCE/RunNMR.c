@@ -25,6 +25,7 @@
 #include "DSP28x_Project.h"										// Device Headerfile and Examples Include File
 #include "stdlib.h"
 #include <string.h>
+#include <math.h>
 
 #include "RunNMR.h"
 #include "nmr.h"
@@ -32,12 +33,20 @@
 #include "gpio_init.h"
 #include "asic.h"
 
+#include "noe1dseq.h"   // new seq
+
+
 // NMR System Parameter settings
 /* definition is in RunNMR.h
  *
 */
 
 // NMR parameters
+
+#define ver_code 2014*65536+19*256 + 1; //2014*2^16 + 19*2^8 + 1; // 2014 - ASIC ver; 19=> 2019; 1=>sub ver 1
+                                        //version code from 2019, nov. YS.
+                                        //version will always have a year, then subversion number
+                                        //NMR_Sys_Parameters change: update asic_ver to Uint32.
 
 NMR_Sys_Parameters NMR_system_settings;
 PlsSeq gPulseSeq; 												// store the pulse seq, global
@@ -67,7 +76,7 @@ int Run_NMR_Accumulate_tuning_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dw
 int Run_NMR_test(void )	;		// use as a test
 
 // from tempcontroller.c
-float ADS1248_init();
+//float ADS1248_init();
 
 
 /*
@@ -101,10 +110,10 @@ void SetTD(Uint32 inValue)
 	SetNMRParameters(i_TD, inValue);
 }
 
-
+// return the number of data points that have been acquired.
 Uint32 GetAcqTD()
 {
-	return GetNMRParameters(i_TD);
+	return GetNMRParameters(i_acquiredTD);
 }
 
 
@@ -124,15 +133,15 @@ Uint32	GetNMRParameters(int index)
 		case i_dwell :  theValue =  NMR_system_settings.dw ;break;
 		case i_T90 :  theValue =  NMR_system_settings.T90 ; break;
 		case i_T180 :  theValue =  NMR_system_settings.T180 ; break;
-		case i_TE :  theValue =  NMR_system_settings.TE ; break;
-		case i_TD :  theValue =  NMR_system_settings.TD ; break;
-		case i_freq :  theValue =  NMR_system_settings.Freq ; break;
-		case i_RD: 		theValue = NMR_system_settings.RD; break;
-
+		case i_TE:  theValue =  NMR_system_settings.TE ; break;
+		case i_TD:  theValue =  NMR_system_settings.TD ; break;
+		case i_freq:  theValue =  NMR_system_settings.Freq ; break;
+		case i_RD: 	theValue = NMR_system_settings.RD; break;
+		case i_tau: theValue = NMR_system_settings.tau; break;
 		case i_TD1: theValue = NMR_system_settings.TD1; break;
 		case i_TD2: theValue = NMR_system_settings.TD2; break;
 		case i_maxTD: theValue = NMR_system_settings.maxTD; break;
-		case i_acqiredTD: theValue = NMR_system_settings.acquiredTD; break;
+		case i_acquiredTD: theValue = NMR_system_settings.acquiredTD; break;
 		case i_echoshape: theValue = NMR_system_settings.echoshape;break;
 		case i_nint: theValue = NMR_system_settings.nint;break;
 		case i_nfrac: theValue = NMR_system_settings.nfrac;break;
@@ -159,7 +168,7 @@ void synth_fset(double fout, unsigned int rf_gain);
 
 int	SetNMRParameters(int index, Uint32 value)
 {
-	Uint32 res;
+//	Uint32 res;
 	double d;
 
 	switch(index)
@@ -183,11 +192,13 @@ int	SetNMRParameters(int index, Uint32 value)
 	case i_freq :
 		NMR_system_settings.Freq = value;
 
-		d = (double)NMR_system_settings.Freq/500000.0;
-		PLL_freq_set(value*2);
+		PLL_freq_set3(NMR_system_settings.Freq*2);
+
+		//d = (double)NMR_system_settings.Freq/500000.0;
+		//PLL_freq_set(value*2);
 
 		//synth_fset(d, 5);
-		NMR_system_settings.error = (int)(d*100);
+		//NMR_system_settings.error = (int)(d*100);
 		break;
 	case i_nint :
 	    NMR_system_settings.nint = value;
@@ -200,8 +211,9 @@ int	SetNMRParameters(int index, Uint32 value)
 
 	case i_TD1: 		NMR_system_settings.TD1= value; break;
 	case i_TD2: 		NMR_system_settings.TD2= value; break;
+	case i_tau:         NMR_system_settings.tau= value; break;
 	case i_maxTD: 	 NMR_system_settings.maxTD= value; break;
-	case i_acqiredTD: NMR_system_settings.acquiredTD= value; break;
+	case i_acquiredTD: NMR_system_settings.acquiredTD= value; break;
 	case i_echoshape: NMR_system_settings.echoshape = value;break;
 	case i_dummyecho: NMR_system_settings.dummyecho = value;break;
 	case i_error :
@@ -217,7 +229,7 @@ void initNMRParameters()
 
 	NMR_system_settings.Freq = 23300000;		// 23.3 MHz for microNMR
 
-    NMR_system_settings.asic_ver = 2014;
+    NMR_system_settings.asic_ver = ver_code; // 2014*2^16 + 19*2^8 + 1; // 2014 - ASIC ver; 19=> 2019; 1=>sub ver 1
     NMR_system_settings.tuningcap=3500;
     NMR_system_settings.RecGain = 9;   // 15
 
@@ -229,7 +241,8 @@ void initNMRParameters()
     NMR_system_settings.TE = 1000;     // echo time
     NMR_system_settings.TD = 1000;     // number of points to acq
     NMR_system_settings.PL[0]=30;       //power level
-    NMR_system_settings.maxTD = dataBufferTD;  // max TD
+    NMR_system_settings.maxTD = dataBufferTD;  // max T
+    NMR_system_settings.tau= 1000;
     NMR_system_settings.TD1 = 1;
     NMR_system_settings.TD2 = 1;
     NMR_system_settings.acquiredTD = 0;
@@ -335,16 +348,22 @@ void Do_NMR_experiments(int inSeqNum)
        case 5: res = Run_NMR_Tuning_mcbsp();                                  // Store file
        break;
 
+       case 6: res = Run_NMR_TuningCurve_mcbsp();
+       break;
        /*
        case 5: res = StoreFileTest(1);									// Store file
        break;
        case 6: res = SetNMRss();										// Set NMR Rss
        break;
        */
-       case 7: res = Run_NMR_test();								//
+       case 7: res = Run_NMR_IR_mcbsp();								//
        break;
-       case 8:
+       case 8: res = Run_NMR_IRCPMG_mcbsp();
        break;
+
+       case 100:
+               res = Run_NMR_test( );
+           break;
 
    	   default:
    	   	   	   for (i=0;i<20;i++)
@@ -357,13 +376,20 @@ void Do_NMR_experiments(int inSeqNum)
    	   	   	   }
    	   	   	   SetNMRParameters(i_TD,20);
 
-   	   	   	   x = ADS1248_init();
+   	  // 	   	   x = ADS1248_init();
 
    	   	   	   SetNMRParameters(i_error, (Uint32) x);
        break;
     }
 
 }
+
+
+
+
+// *****************************************************
+//     NMR sequences and data acquisition
+// *****************************************************
 
 /*
  *
@@ -428,24 +454,35 @@ int Run_NMR_FID(void)
 
 } // end of Run_NMR_FID
 
+
+
+// version that uses mcbsp serial bus. Not the SPI.
 int Run_NMR_FID_mcbsp(void)
 {
     int ii = 0, acqPTs;                                                 // ii= index, acq points
     int DS = 0, NA;                                                         // Dummy Scan
-    long Nint, Nfrac;
+//    long Nint, Nfrac;
 
     // pulse seq parameters
     // phase table
-    int ph1[]    = {0,2,1,3};                                               // in unit of 90 deg
-    int phacq[] = {0,2,1,3};
+    // int ph1[]    = {0,2,1,3};                                               // in unit of 90 deg
+    // int phacq[] = {0,2,1,3};
+    // int phlength = 4;
+
+    int ph1[]    = {0, 2, 1 , 3};                                               // in unit of 90 deg
+    int phacq[]     = {0,2,1,3};
     int phlength = 4;
 
-    Nint = NMR_system_settings.nint;
-    Nfrac = NMR_system_settings.nfrac;
+//    Nint = NMR_system_settings.nint;
+//    Nfrac = NMR_system_settings.nfrac;
 
-    PLL_freq_set2(Nint,Nfrac);
+//    PLL_freq_set2(Nint,Nfrac);
+//    PLL_freq_set3(NMR_system_settings.Freq*2);
 
-    DELAY_US(100);
+    spi_dac_MCC(NMR_system_settings.tuningcap & 0x0000FFFF);    //using the lower 2 bytes
+    AsicGainCtrl (NMR_system_settings.RecGain);
+
+    DELAY_US(10000);
 
     strcpy(NMR_system_settings.SEQ, "FID");
 
@@ -494,12 +531,88 @@ int Run_NMR_FID_mcbsp(void)
 
 } // end of Run_NMR_FID
 
+int Run_NMR_IR_mcbsp(void)
+{
+    int ii = 0, acqPTs;                                                 // ii= index, acq points
+    int DS = 0, NA;                                                         // Dummy Scan
+    long Nint, Nfrac;
+
+    // pulse seq parameters
+    // phase table
+    int ph1[]={0,2,1,3};   // in unit of 90 deg
+    int ph2[]={1,1,0,0};
+    int phacq[] = {0,2,1,3};
+    int phlength = 4;
+
+//    Nint = NMR_system_settings.nint;
+//    Nfrac = NMR_system_settings.nfrac;
+//
+//    PLL_freq_set2(Nint,Nfrac);
+    PLL_freq_set3(NMR_system_settings.Freq*2);
+    spi_dac_MCC(NMR_system_settings.tuningcap & 0x0000FFFF);    //using the lower 2 bytes
+    AsicGainCtrl (NMR_system_settings.RecGain);
+
+    DELAY_US(100);
+
+    strcpy(NMR_system_settings.SEQ, "IR");
+
+    // parameters used in assisting the running of the seq
+    Uint32  expTime;                                                    // total time for 1 run of pulse seq, obtain from the pulse seq itself
+    Uint32  p[9];// = {500000,20,30,0,10,500};                              //{500000,20,30,0,10,500}
+
+    // update freq, scan
+
+
+    DS = NMR_system_settings.DS     ;
+    NA = NMR_system_settings.NA     ;
+
+    p[0]=NMR_system_settings.RD     ;                                   // RD
+    p[1]=NMR_system_settings.T90    ;                                   // T90 RF pulse width
+    p[2]=30                         ;                                   // amp, PL[0]
+    p[3]=ph1[0]*8                   ;                                   // phase, 32 steps, to be cycled by ph1
+    p[4]=NMR_system_settings.T180   ;
+    p[5]=8                          ;
+    p[6]=NMR_system_settings.dw     ;                                   // dw time, us
+    p[7]=NMR_system_settings.TD     ;
+    p[8]=NMR_system_settings.tau    ;                                   // recovery for IR
+
+    for (ii=0; ii<p[7]; ii++) dataBuf_real[ii] = dataBuf_imag[ii] = 0;  // reset data mem to 0
+    // ---------------------------------------------
+    // internal loop for phase cycling and averaging
+
+    for (ii=-DS;ii<NA;ii++)
+    {
+        // update phase cycling
+        if (ii<0)
+        {   p[3]=ph1[0]*8;                                          // set the phase of the pulse, first ph1 for dummy scan
+            p[5]=ph2[0]*8;
+        }
+        else
+        {    p[3]=ph1[ii % phlength]*8;                              // set the phase of the pulse
+             p[5]=ph2[ii % phlength]*8;
+        }
+
+        expTime = IR(&gPulseSeq,p);                                      // recreate the seq with the proper phase
+                                                                        // total time for the experiment in US
+                                                                        // gPulseSeq global record of pulse seq results
+        // do NMR, ii<0 is dummy scans
+        if (ii<0)
+            acqPTs = Run_NMR_Accumulate_mcbsp(&gPulseSeq, expTime, p[6],p[7],  -1);   //dummy scan
+        else
+            acqPTs = Run_NMR_Accumulate_mcbsp(&gPulseSeq, expTime, p[6],p[7], phacq[(ii % phlength)]);
+    }
+    NMR_system_settings.acquiredTD = acqPTs;
+
+    return(acqPTs);
+
+} // end of Run_NMR_FID
+
 
 // use mcbsp for providing the adc ticks and acquisition -Ray 7/2017
 int Run_NMR_Accumulate_mcbsp(PlsSeq *inSeq, unsigned long expTime, int DwellTime, int TD, int inAcqPhase)
     {
         int    index;
-        const Uint32    US_CT = 150;                                    // CPU clock count per microsecond
+        const Uint32    US_CT = 75;                                    // CPU clock count per microsecond
         long        timeStamp1=0;
         int16  tmpTop, tmpBottom, tmpReal, tmpImag;
 
@@ -513,6 +626,7 @@ int Run_NMR_Accumulate_mcbsp(PlsSeq *inSeq, unsigned long expTime, int DwellTime
             StartCpuTimer0();
             EN_NMR_mode();
 
+           // PrepareNMRADC();            // set ADC SPI conf.
 
             index=0;
 
@@ -526,8 +640,8 @@ int Run_NMR_Accumulate_mcbsp(PlsSeq *inSeq, unsigned long expTime, int DwellTime
 //
 //                // store the start time stamp
 //                // timer counts down!
-           timeStamp1 = ReadCpuTimer0Counter() - expTime*US_CT;                    // this is the end time of the sequence
-//                //
+           timeStamp1 = ReadCpuTimer0Counter() - expTime*US_CT;                    // this is the end time of the sequence. /2 added because
+//                //                                                                 // prescalar = 2;
            while( (ReadCpuTimer0Counter() > timeStamp1 ))
                 {
           //  while( PieCtrlRegs.PIEIFR1.bit.INTx4 == 0 ) {asm(" nop");}              // Master waits until XINT1
@@ -590,7 +704,7 @@ int Run_NMR_Accumulate_tuning_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dw
       int    index;
       const Uint32    US_CT = 150;                                    // CPU clock count per microsecond
       long        timeStamp1=0;
-      int16  tmpTop, tmpBottom, tmpReal, tmpImag;
+      int32  tmpTop, tmpBottom, tmpReal, tmpImag;
 
 
       if (inSeq != NULL)
@@ -602,12 +716,10 @@ int Run_NMR_Accumulate_tuning_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dw
           StartCpuTimer0();
           EN_Tuning_mode();
 
-
           index=0;
 
           // and start acquiring data
           //PieCtrlRegs.PIEIFR1.bit.INTx4 = 0;
-
 //
           DINT;
 //                // start the pulse sequence.
@@ -630,7 +742,6 @@ int Run_NMR_Accumulate_tuning_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dw
               McbspbRegs.SPCR2.bit.FRST   = 1;                                        // Frame Sync Generator enabled, this must be after GRST
               McbspbRegs.SPCR2.bit.XRDY   = 1;                                        // Transmitter ready to accept new data
 
-
  //         while(index < TD)
  //         {
               while( McbspbRegs.SPCR1.bit.RRDY == 0 ) {asm(" nop");}              // Master waits until RX data is ready
@@ -642,27 +753,26 @@ int Run_NMR_Accumulate_tuning_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dw
 
               // ii < 0 means dummy scans, do not accumulate
 
-                  switch (inAcqPhase)
-                  {
+              switch (inAcqPhase)
+              {
                   case 0:tmpReal = tmpTop; tmpImag = tmpBottom;break;
                   case 1:tmpReal = -tmpBottom; tmpImag = tmpTop;break;
                   case 2:tmpReal = -tmpTop; tmpImag = -tmpBottom;break;
                   case 3:tmpReal = tmpBottom; tmpImag = -tmpTop;break;
                   default:tmpReal = 0; tmpImag = 0;                               // all other values, do not accumulate
                   break;
-                  };
+              };
 
                   dataBuf_real[index] += tmpReal/10;                              // normalize data to the number of acquisition
                   dataBuf_imag[index] += tmpImag/10;
                   index ++;                                                           // next data point
-
           }
           else
           {
-          McbspbRegs.SPCR2.bit.XRST   = 0;                                        // Transmitter enabled, not required for uNMR
-          McbspbRegs.SPCR1.bit.RRST   = 0;                                        // Release RX from Reset
-          McbspbRegs.SPCR2.bit.FRST   = 0;                                        // Release RX from Reset
-          McbspbRegs.SPCR2.bit.GRST   = 0;
+              McbspbRegs.SPCR2.bit.XRST   = 0;                                        // Transmitter enabled, not required for uNMR
+              McbspbRegs.SPCR1.bit.RRST   = 0;                                        // Release RX from Reset
+              McbspbRegs.SPCR2.bit.FRST   = 0;                                        // Release RX from Reset
+              McbspbRegs.SPCR2.bit.GRST   = 0;
           }
        }
           // Sample rate generator disabled
@@ -687,10 +797,14 @@ int Run_NMR_Tuning(void)
     int DS = 0, NA;             											// Dummy Scan
 
     // phase table
-    int ph1[4] 	 = {0,2,1,3};   											// in unit of 90 deg
-    int phacq[4] = {0,2,1,3};
-    int phlength = 4;
+    int ph1[4] 	 = {1, 3};   											// in unit of 90 deg
+    int phacq[4] = {0, 2};
+    int phlength = 2;
 
+ //   Nint = NMR_system_settings.nint;
+ //   Nfrac = NMR_system_settings.nfrac;
+
+ //   PLL_freq_set2(Nint,Nfrac);
 
     DS = NMR_system_settings.DS;
     NA = NMR_system_settings.NA;
@@ -748,29 +862,92 @@ int Run_NMR_Tuning(void)
 } // end of Run_NMR_Tuning
 
 
+
+/*
+ * Use Run_NMR_Tuning_mcbsp() to obtain the full tuning curves.
+ * scan freq: center freq = NMR_system_settings.Freq, scan (o1) plus/minus 0.5 Mhz
+ * scan tuning cap bias: from 100 to 4000 every 100
+ */
+int Run_NMR_TuningCurve_mcbsp(void)
+{
+    long ii, kk, j;
+    long origFreq, origCapBias;
+    long theAmpl1, theAmpl2, theTD;
+    double x;
+
+    origFreq = NMR_system_settings.Freq;
+    origCapBias = NMR_system_settings.tuningcap;
+
+    for (kk=0;kk<20;kk++) {
+
+        NMR_system_settings.tuningcap =  100+(4000-100)/(20-1)*kk;
+        for (ii=0;ii<20;ii++) {
+            DELAY_US(100);
+            NMR_system_settings.Freq = origFreq + 1000000/(20-1)*(ii)-500000;
+            theTD = Run_NMR_Tuning_mcbsp();
+
+            // acquire the amplitude
+            theAmpl1 = 0;
+            theAmpl2 = 0;
+            for (j=25;j<45;j++) {
+                theAmpl1 += dataBuf_real[j];
+                theAmpl2 += dataBuf_imag[j];
+            }
+            theAmpl1 = theAmpl1/20/NMR_system_settings.NA;
+            theAmpl2 = theAmpl2/20/NMR_system_settings.NA;
+            x = (theAmpl1*theAmpl1+theAmpl2*theAmpl2);
+            x = sqrt(x);
+            dataBuf_real[theTD + kk*20 + ii] = (int) x;
+            dataBuf_imag[theTD + kk*20 + ii] = (int) 1000*(ii)/(20-1)-500;
+        }
+        dataBuf_imag[theTD + kk] = (int) NMR_system_settings.tuningcap;
+    }
+    //return the total number of data points acquired
+    SetNMRParameters(i_acquiredTD, theTD+20*20);
+    SetNMRParameters(i_freq, origFreq);
+    SetNMRParameters(i_tuningcap, origCapBias);
+
+    //NMR_system_settings.acquiredTD = theTD + 20*20;
+    return (theTD + 20*20);
+}
+
+
 int Run_NMR_Tuning_mcbsp(void)
 {
-    int ii = 0, acqPTs;                                                 // ii= index, acqpoints
+
+    int ii, acqPTs;                                                 // ii= index, acqpoints
 
     // pulse seq parameters
-    int DS = 0, NA;                                                         // Dummy Scan
+    int DS, NA;                                                         // Dummy Scan
 
     // phase table
     int ph1[4]   = {0,2,1,3};                                               // in unit of 90 deg
     int phacq[4] = {0,2,1,3};
     int phlength = 4;
 
+//    Nint = NMR_system_settings.nint;
+//    Nfrac = NMR_system_settings.nfrac;
+//    PLL_freq_set2(Nint,Nfrac);                  // Ray Tang add spi_dac for frequency sweeping 11/02/2017
+
+    PLL_freq_set3(NMR_system_settings.Freq*2);
+
+    spi_dac_MCC(NMR_system_settings.tuningcap & 0x0000FFFF);    //using the lower 2 bytes. YS 2019/11/25
+    AsicGainCtrl (NMR_system_settings.RecGain);
+
+//    AsicGainCtrl(NMR_system_settings.RecGain); // Ray Tang add for winding down rec gain 11/03/2017
+//    spi_dac_MCC(NMR_system_settings.tuningcap); // Ray Tang add spi_dac for tuning 11/02/2017
+
+    DELAY_US(10000);
 
     DS = NMR_system_settings.DS;
     NA = NMR_system_settings.NA;
     NMR_system_settings.TD = 100 ;
     NMR_system_settings.T90 = 300 ;
-    NMR_system_settings.RD = 100000;
+    NMR_system_settings.RD = 1000;
     // parameters used in assisting the running of the seq
     Uint32  expTime;                                                    // total time for 1 run of pulse seq, obtain from the pulse seq itself
     Uint32  p[6];// = {500000,20,30,0,10,500};                              //{500000,20,30,0,10,500}
     //Uint32    p[6] = {5005,20,30,0,10,500};                               //{500000,20,30,0,10,500}
-
 
     /*
     p[0]=NMR_system_settings.RD     ;                                   // RD
@@ -782,7 +959,7 @@ int Run_NMR_Tuning_mcbsp(void)
     */
     p[0]=NMR_system_settings.RD;                                                    // RD
     p[1]=NMR_system_settings.T90;                           // T90 RF pulse width
-    p[2]=30;                                                            // amp, PL[0]
+    p[2]=5;                                                            // amp, PL[0]
     p[3]=0;                                                             // phase, 32 steps, to be cycled by ph1
     p[4]=NMR_system_settings.dw;                                                            // dw time, us typical is 10us
     p[5]=NMR_system_settings.TD;                                                            // number of point to acq
@@ -791,7 +968,6 @@ int Run_NMR_Tuning_mcbsp(void)
 
     // ---------------------------------------------
     // internal loop for phase cycling and averaging
-
     for (ii=-DS;ii<NA;ii++)
     {
         // update phase cycling
@@ -813,7 +989,6 @@ int Run_NMR_Tuning_mcbsp(void)
     NMR_system_settings.acquiredTD = acqPTs;
 
     return(acqPTs);
-
 } // end of Run_NMR_Tuning
 
 
@@ -948,15 +1123,22 @@ int Run_NMR_CPMG_mcbsp(void)
     int NPTS ;       // acq points per echo
 
     // phase table
+
+
     int ph1[]={0,2,1,3};   // in unit of 90 deg
     int ph2[]={1,1,0,0};
     int phacq[] = {0,2,1,3};
     int phlength = 4;
 
-    Nint = NMR_system_settings.nint;
-    Nfrac = NMR_system_settings.nfrac;
+//    Nint = NMR_system_settings.nint;
+//    Nfrac = NMR_system_settings.nfrac;
 
-    PLL_freq_set2(Nint,Nfrac);
+//    PLL_freq_set2(Nint,Nfrac);
+    PLL_freq_set3(NMR_system_settings.Freq*2);
+
+    spi_dac_MCC(NMR_system_settings.tuningcap & 0x0000FFFF);    //using the lower 2 bytes
+    AsicGainCtrl (NMR_system_settings.RecGain);
+
 
     DELAY_US(100);
 
@@ -1000,7 +1182,6 @@ int Run_NMR_CPMG_mcbsp(void)
     theParameters[9] = NMR_system_settings.dw;
 
     for (ii=0;ii<NMR_system_settings.TD;ii++) dataBuf_real[ii] = dataBuf_imag[ii] = 0;
-
 // ---------------------------------------------
     // internal loop for phase cycling and averaging
     for (ii=-DS;ii<NA;ii++){
@@ -1041,13 +1222,127 @@ int Run_NMR_CPMG_mcbsp(void)
 
 } // end of Run_NMR_CPMG
 
+
+int Run_NMR_IRCPMG_mcbsp(void)
+{
+    long    ii=0, GetechoShape;
+    // ----------------------------------------------------
+    // pulse seq parameters
+    int dummyecho; //dummyecho is the number of dummy echoes
+    int NA=1;
+    int DS = 0;
+  //  long Nint, Nfrac;
+
+    int Necho ;   // number of echoes
+    int NPTS ;       // acq points per echo
+
+    // phase table
+    int ph0[]={0,0,0,0};
+    int ph1[]={0,2,1,3};   // in unit of 90 deg
+    int ph2[]={1,1,0,0};
+    int phacq[] = {0,2,1,3};
+    int phlength = 4;
+
+    PLL_freq_set3(NMR_system_settings.Freq*2);
+
+    spi_dac_MCC(NMR_system_settings.tuningcap & 0x0000FFFF);    //using the lower 2 bytes
+    AsicGainCtrl (NMR_system_settings.RecGain);
+
+
+    // reset the system parameters. Could be interactive
+    strcpy(NMR_system_settings.SEQ, "CPMG");
+    NA = NMR_system_settings.NA;
+    DS = NMR_system_settings.DS;
+    GetechoShape = 0; // no echo shape:0 for T1T2
+    NPTS = NMR_system_settings.TE/NMR_system_settings.dw/2;
+    dummyecho = NMR_system_settings.dummyecho;
+
+    if (GetechoShape == 0)
+        Necho = NMR_system_settings.TD*(1+dummyecho); //add dummy echo 9/4/17 Ray Tang
+    else
+        Necho = NMR_system_settings.TD/NPTS;
+
+    // ----------------
+    // parameters use in assisting the running of the seq
+    Uint32  expTime;    // total time for 1 run of pulse seq, obtain from the pulse seq itself
+
+    //PlsSeq thePulseSeq; // store the pulse seq - use the global def
+    Uint32 theParameters[12];//"10, 1000, 32, 0, 500, 0"
+    int acqPTs;
+
+// download the pulse seq
+// [0]  : RD,
+// [1-3]: T90, amp, ph1,
+// [4-5]: T180, ph2: P180 time and phase
+// [6-8]: TE, Necho, NPTS : echo time, and number of echoes, and number of pt per echo
+// [9] : dw
+// [10]: encoding time
+// [11]: phase for 1st 180 pulse
+    theParameters[0]=NMR_system_settings.RD;   // RD
+    theParameters[1]=NMR_system_settings.T90;        // T90 RF pulse width
+    theParameters[2]=30;        // amp, PL[0]
+    theParameters[3]=0;         // phase, 32 steps, to be cycled by ph1
+    theParameters[4]=NMR_system_settings.T180;       //  T180 time, us
+    theParameters[5]=8;         // phase of P180
+    theParameters[6]=NMR_system_settings.TE;         // TE
+    theParameters[7]=Necho;         // number of echoes
+    theParameters[8]=NPTS;         // NPTS
+    theParameters[9] = NMR_system_settings.dw;
+    theParameters[10] = NMR_system_settings.tau;
+    theParameters[11] = 0;
+
+    for (ii=0;ii<NMR_system_settings.TD;ii++) dataBuf_real[ii] = dataBuf_imag[ii] = 0;
+
+// ---------------------------------------------
+    // internal loop for phase cycling and averaging
+    for (ii=-DS;ii<NA;ii++){
+        // update phase cycling
+        if (ii<0)
+        {
+            theParameters[3]=ph1[0]*8;              // set the phase of the pulse, first ph1 for dummy scan
+            theParameters[5]=ph2[0]*8;
+            theParameters[11]=ph0[0]*8;
+        }
+        else
+        {
+            theParameters[3]=ph1[ii % phlength]*8; // set the phase of the pulse
+            theParameters[5]=ph2[ii % phlength]*8;
+            theParameters[11]=ph0[ii % phlength]*8;
+        }
+
+        expTime = IRCPMG(&gPulseSeq,theParameters);    // recreate the seq with the proper phase
+                                                        // total time for the experiment in US
+
+        // do NMR, ii<0 is dummy scans
+        if (GetechoShape==0) { // do not acquire echo shape
+            if (ii<0)
+                    acqPTs = Run_NMR_Accumulate_CPMG_mcbsp(&gPulseSeq, expTime, NMR_system_settings.dw,dummyecho,Necho, -1,NPTS, NULL);
+            else
+                    acqPTs = Run_NMR_Accumulate_CPMG_mcbsp(&gPulseSeq, expTime, NMR_system_settings.dw,dummyecho,Necho, phacq[ii % phlength],NPTS, NULL);
+        } else { // acquire echo shape
+            if (ii<0)
+                    acqPTs = Run_NMR_Accumulate_mcbsp(&gPulseSeq, expTime, theParameters[9],Necho*NPTS, -1);
+            else
+                    acqPTs = Run_NMR_Accumulate_mcbsp(&gPulseSeq, expTime, theParameters[9],Necho*NPTS,phacq[ii % phlength]);
+        }
+
+        NMR_system_settings.acquiredTD = acqPTs;
+
+    } // loop acquistion
+      // end internal loop for phase cycling
+
+    return(acqPTs);
+
+} // end of Run_NMR_CPMG
+
+
 int Run_NMR_Accumulate_CPMG_mcbsp(PlsSeq *inSeq, unsigned long expTime, int DwellTime, int dummyecho, int TD, int inAcqPhase, int NPTS, int *echoFilter1)
 {
             int   i, echoNumber=0;
             unsigned long k=0;
             unsigned long   index;
-            const Uint32    US_CT = 150;                                    // CPU clock count per microsecond
-            long        timeStamp1=0;
+            const Uint32    US_CT = 75;                                  // CPU clock count per microsecond divided by 2. Ray 9/15/2017
+            unsigned long   timeStamp1=0,timeStamp2=0;                  // change to unsigned by Ray Tang 9/14/2017
             int16  tmpTop, tmpBottom, tmpReal, tmpImag;
 
             //   int     echoShape_real[NPTS],echoShape_imag[NPTS];
@@ -1071,7 +1366,7 @@ int Run_NMR_Accumulate_CPMG_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dwel
                 for (i=0;i<NPTS;i++)
                     echoFilter[i]=0;
 
-                for (i=(i1-5);i<(i1+5);i++)
+                for (i=(i1-1);i<(i1+1);i++)
                     echoFilter[i]=1;
 //
 //                for (i=i1;i<NPTS;i++)
@@ -1089,6 +1384,9 @@ int Run_NMR_Accumulate_CPMG_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dwel
                 EN_NMR_mode();
                 index=0;
 
+              //  PrepareNMRADC();            // set ADC SPI conf.
+
+
                 // and start acquiring data
                 //PieCtrlRegs.PIEIFR1.bit.INTx4 = 0;
 
@@ -1099,9 +1397,11 @@ int Run_NMR_Accumulate_CPMG_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dwel
     //
     //                // store the start time stamp
     //                // timer counts down!
-               timeStamp1 = ReadCpuTimer0Counter() - expTime*US_CT;                    // this is the end time of the sequence
-    //                //
-               while( (ReadCpuTimer0Counter() > timeStamp1 ))
+                timeStamp2 = ReadCpuTimer0Counter();
+                timeStamp1 = ReadCpuTimer0Counter() - expTime*US_CT;                    // this is the end time of the sequence
+
+               //                //
+               while(ReadCpuTimer0Counter() > timeStamp1 )
                     {
               //  while( PieCtrlRegs.PIEIFR1.bit.INTx4 == 0 ) {asm(" nop");}              // Master waits until XINT1
 
@@ -1114,9 +1414,11 @@ int Run_NMR_Accumulate_CPMG_mcbsp(PlsSeq *inSeq, unsigned long expTime, int Dwel
                     McbspbRegs.SPCR2.bit.FRST   = 1;                                        // Frame Sync Generator enabled, this must be after GRST
                     McbspbRegs.SPCR2.bit.XRDY   = 1;                                        // Transmitter ready to accept new data
 
-                    k = (long)(index % (ptsPerEcho-1)); //track points collected within an echo
-                    echoNumber = index / (ptsPerEcho-1); //track the number of echoes
+        //            k = (long)(index % (ptsPerEcho-1)); //track points collected within an echo
+        //            echoNumber = index / (ptsPerEcho-1); //track the number of echoes
 
+                    k = (long)(index % (ptsPerEcho)); //track points collected within an echo
+                    echoNumber = index / (ptsPerEcho); //track the number of echoes
 
        //         while(index < TD)
        //         {
@@ -1690,23 +1992,24 @@ int Run_NMR_CPMG(void)
 
 void PrepareNMRADC()
 {
-    ResetNMR();															// default config of NMR ASIC found in nmr.c
-     InitNMR();															// found in nmr.c
+ //    ResetNMR();															// default config of NMR ASIC found in nmr.c
+ //    InitNMR();															// found in nmr.c
 
 //	PLL_init();
 // 	PLL_freq_set(NMR_system_settings.Freq*2);			// initialize PLL every time the sequecne starts. May help with phase coherence.
 
- 	spi_dac(NMR_system_settings.tuningcap)	;
+// 	 spi_dac(NMR_system_settings.tuningcap);
+ 	 spi_dac_MCC(NMR_system_settings.tuningcap);
      AsicGainCtrl (NMR_system_settings.RecGain);
 
     // configure spi for ADC
   	// POL=0, PHA=1, 16-bits word, 2 FIFO reg, speed=>18.5 MHz, max 75/4=18.5 MHz
   	// ClkSpeedDiv set to 3
-      configure_SPI(0, 1, 15, 2, 3); //, Uint16 PHA, Uint16 BITS, Uint16 nFIFO, Uint16 ClkSpeedDiv)
+    //  configure_SPI(0, 1, 15, 2, 3); //, Uint16 PHA, Uint16 BITS, Uint16 nFIFO, Uint16 ClkSpeedDiv)
 
   	// GPIO0, uC CLK ADC 3V3. This is the conversion trigger for ADC.
-  	GpioDataRegs.GPACLEAR.bit.GPIO0 		= 1;				// uC CLK ADC 3V3, set to low
-  	GpioCtrlRegs.GPAPUD.bit.GPIO0 			= 0;			// pull-up enabled
+  	//GpioDataRegs.GPACLEAR.bit.GPIO0 		= 1;				// uC CLK ADC 3V3, set to low
+  	//GpioCtrlRegs.GPAPUD.bit.GPIO0 			= 0;			// pull-up enabled
 
 }
 
@@ -1716,6 +2019,19 @@ void FinishNMRADC()
 
 }
 
+/*
+ * This routine is used to test new methods, sequences.
+ * For serial communication, this is experiment 100 (0x64), used in "Do_NMR_experiments(100)"
+ * For the serial command from matlab:
+ * NMR_job = 101;
+ * code1 = hex2dec('6401'); % run Run_NMR_test() command, the second byte (0x01) means 1 scan
+ *
+ */
+int Run_NMR_test(void )
+{
+
+    return Run_NMR_NOE1dFID_mcbsp();
+}
 
 
 // FEb 2017. test seq phase problem
@@ -1730,7 +2046,7 @@ void FinishNMRADC()
  * Test 2. feb 20. how to run faster acquisition. spi=>18.5 Mhz,
  * Simplify the code in adc
  */
-int Run_NMR_test(void )
+int Run_NMR_test2017(void )
 {
     long    ii=0, phase=0;
     int acqPTs = 20;
